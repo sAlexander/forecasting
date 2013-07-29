@@ -5,6 +5,7 @@
 CREATE TABLE fields
 (
   fieldid serial NOT NULL,
+  modelid serial not null,
   name character varying(100),
   description character varying(1000),
   CONSTRAINT fields_pkey PRIMARY KEY (fieldid)
@@ -12,6 +13,3 @@ CREATE TABLE fields
 WITH (
   OIDS=FALSE
 );
-ALTER TABLE fields
-  OWNER TO salexander;
-

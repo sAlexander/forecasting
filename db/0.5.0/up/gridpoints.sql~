@@ -5,6 +5,7 @@
 CREATE TABLE gridpoints
 (
   gridpointid serial NOT NULL,
+  modelid serial not null,
   geom geometry,
   CONSTRAINT gridpoint_pkey PRIMARY KEY (gridpointid)
 )
@@ -23,4 +24,6 @@ CREATE INDEX gridpoints_gist
   USING gist
   (geom);
 
-
+CREATE INDEX gridpoints_model
+  ON gridpoints
+  using (modelid);

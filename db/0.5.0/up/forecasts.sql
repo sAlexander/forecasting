@@ -10,11 +10,11 @@ CREATE TABLE forecasts
   pressure_mb real,
   datatime timestamp without time zone NOT NULL,
   datatimeforecast timestamp without time zone,
-  CONSTRAINT dataentries_pkey PRIMARY KEY (dataentryid)
+  CONSTRAINT forecasts_pkey PRIMARY KEY (forecastid)
 )
 WITH (
   OIDS=FALSE
 );
-ALTER TABLE dataentries
+ALTER TABLE forecasts
   OWNER TO salexander;
 
