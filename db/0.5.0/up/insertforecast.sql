@@ -6,12 +6,12 @@ CREATE OR REPLACE FUNCTION insertforecast(ifieldid integer, iheight real, tdatat
   RETURNS integer AS
 $BODY$
 DECLARE
-	rval int;
+rval int;
 BEGIN
-IF EXISTS (SELECT 1 from dataentries de where de.fieldid = ifieldid and de.pressure_mb = iheight and de.datatime = tdatatime and de.datatimeforecast = tdatatimeforecast ) THEN
-	select INTO rval forecastid from dataentries de where de.fieldid = ifieldid and de.pressure_mb = iheight and de.datatime = tdatatime and de.datatimeforecast = tdatatimeforecast;
+IF EXISTS (SELECT 1 from forecasts de where de.fieldid = ifieldid and de.pressure_mb = iheight and de.datatime = tdatatime and de.datatimeforecast = tdatatimeforecast ) THEN
+select INTO rval forecastid from forecasts de where de.fieldid = ifieldid and de.pressure_mb = iheight and de.datatime = tdatatime and de.datatimeforecast = tdatatimeforecast;
 ELSE
-	INSERT into dataentries (fieldid, pressure_mb, datatime, datatimeforecast) values (ifieldid, iheight, tdatatime, tdatatimeforecast) returning forecastid into rval;
+INSERT into forecasts (fieldid, pressure_mb, datatime, datatimeforecast) values (ifieldid, iheight, tdatatime, tdatatimeforecast) returning forecastid into rval;
 END IF;
 return rval;
 END;
