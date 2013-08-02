@@ -1,7 +1,3 @@
--- Function: insertmodel(character varying)
-
--- DROP FUNCTION insertfield(int, character varying);
-
 CREATE OR REPLACE FUNCTION insertfield(mid int, newname varchar(100)) RETURNS int LANGUAGE plpgsql AS $$
 DECLARE
   rval int;

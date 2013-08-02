@@ -1,15 +1,7 @@
--- Table: fields
-
--- DROP TABLE fields;
-
 CREATE TABLE fields
 (
-  fieldid serial NOT NULL,
+  fieldid serial primary key,
   modelid serial not null,
   name character varying(100),
-  description character varying(1000),
-  CONSTRAINT fields_pkey PRIMARY KEY (fieldid)
-)
-WITH (
-  OIDS=FALSE
+  description character varying(1000)
 );
