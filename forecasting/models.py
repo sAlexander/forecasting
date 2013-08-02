@@ -49,9 +49,14 @@ class Model:
 
   def connect(self, **connargs):
     # TODO error checking and cursor creation
-    self.conn = pg.connect(**connargs)
-    self.curs = self.conn.cursor()
+    try:
+      self.conn = pg.connect(**connargs)
+      self.curs = self.conn.cursor()
+    except:
+      raise Exception('Error connecting to database. Can you connect with the same parameters using psycpg2?')
+    print 'Successfully connected to database'
 
+    print 'Checking database version'
     try:
       self.curs.execute('select forecastingversion()')
       self.dbversion = self.curs.fetchone()[0]
@@ -99,10 +104,16 @@ class Model:
       lat = dat.lat[:]
       lon = dat.lon[:]
       print 'fetched grid'
+      dtype = ([('modelid','i4'), ('geom','a25')])
+      data = np.empty(nlat*nlong,dtype)
+      data['modelid'] = self.dbmodelid
       for i in range(0,nlat):
         for j in range(0,nlon):
           print i,j
+          data['geom'][i*j+j] = 'SRID=4326;POINT(%6.6f,%6.6f)' % (lat[i],lon[j])
           self.curs.execute("insert into public.gridpoints (modelid,geom) values(%d, ST_SetSRID(ST_MakePoint(%f, %f), 4326));" % (self.dbmodelid, lat[i], lon[j]))
+      print 'starting binary upload'
+      self.copy_binary(data,'gridpoints')
       print 'finished uploading'
       self.conn.commit()
       print 'finished committing'
@@ -205,7 +216,7 @@ class Model:
       self.conn.commit()
 
       # Send to database
-      copy_binary(data, 'data', binary=True)
+      self.copy_binary(data, 'data')
 
   def retrievegridids(self,lat,lon):
     n = np.size(lat)
@@ -216,7 +227,7 @@ class Model:
     data['lon'] = lon
     createtemptable = 'drop table if exists temp; create table temp (ord int primary key, lat real, lon real);'
     self.curs.execute(createtemptable)
-    self.copy_binary(data,'temp',binary=True)
+    self.copy_binary(data,'temp')
     selectgridids = "select gridpointid from temp inner join gridpoints as g on St_DWithin(g.geom,st_geomfromtext('POINT(' || temp.lat || ' ' || temp.lon || ')',4326),.005) order by ord;"
     self.conn.commit()
     self.curs.execute(selectgridids)
@@ -245,7 +256,7 @@ class Model:
     cpy.write(pack('!h', -1))  # file trailer
     return(cpy)
 
-  def copy_binary(self,dat, table, binary):
+  def copy_binary(self,dat, table):
     cpy = self.prepare_binary(dat)
     cpy.seek(0)
     self.curs.copy_expert('COPY ' + table + ' FROM STDIN WITH BINARY', cpy)
