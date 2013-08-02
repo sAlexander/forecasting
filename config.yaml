@@ -3,3 +3,5 @@ nam: http://nomads.ncep.noaa.gov:9090/dods/nam/nam20130728/nam_12z.info
 rap: http://nomads.ncep.noaa.gov:9090/dods/rap/rap20130728/rap32_17z.info
 
 isd: ftp://ftp3.ncdc.noaa.gov/pub/data/noaa/
+
+helpful scripts: https://github.com/akkana/scripts/tree/master/weather
