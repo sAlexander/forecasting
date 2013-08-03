@@ -6,3 +6,5 @@ CREATE TABLE forecasts
   datatime timestamp without time zone NOT NULL,
   datatimeforecast timestamp without time zone
 );
+
+create index forecasts_idx_fields on forecasts using btree (fieldid);

@@ -17,6 +17,3 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION insertdata(real, real, integer, real)
-  OWNER TO salexander;
-
