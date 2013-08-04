@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>{{ page.title }} | Get Forecasting</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,100' rel='stylesheet' type='text/css'>
+    <link href="/css/syntax-default.css" rel="stylesheet" type="text/css">
+  <style>
+  body {
+    padding-top: 50px;
+  }
+
+  .main {
+    margin-top: 20px;
+  }
+
+  .banner {
+    position: relative;
+  }
+  .banner-text {
+    position: absolute;
+    top:2em;
+    width:30%;
+    background-color: rgba(0,0,0,0.7);
+    color: white;
+    padding: 1em;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    font-weight:thin;
+    font-family: 'Roboto Slab', serif;
+  }
+  .banner-text h1 {
+    font-weight: thin;
+    font-family: 'Roboto Slab', serif;
+  }
+  .navbar {
+    font-weight: thin;
+    font-family: 'Roboto Slab', serif;
+  }
+
+
+  .code-header {
+    margin-bottom:0px;
+    padding-bottom:0px;
+    font-family: Courier New, Courier New, monospace;
+    color:#777;
+  }
+
+  </style>
+  </head>
+  <body>
+    <!-- Fixed navbar -->
+    <div class="navbar navbar-fixed-top">
+      <div class="container">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">Get Forecasting</a>
+        <div class="nav-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/">Home</a></li>
+            <li><a href="/documentation/quick-start/">Quick Start</a></li>
+            <li><a href="/documentation/">Documentation</a></li>
+            <li><a href="/blog/">Blog</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+
+    {{ content }}
+
+    <!-- Syntax Highlighting -->
+    <script src="https://google-code-prettify.googlecode.com/svn/loader/run_prettify.js"></script>
+    <!-- JavaScript plugins (requires jQuery) -->
+    <script src="http://code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/js/bootstrap.min.js"></script>
+
+    <!-- Optionally enable responsive features in IE8. Respond.js can be obtained from https://github.com/scottjehl/Respond -->
+    <script src="/js/respond.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+    //<![CDATA[
+    jQuery(function() {
+      jQuery('ul.nav li').each(function() {
+        var href = jQuery(this).find('a').attr('href');
+        if (href === window.location.pathname) {
+          jQuery(this).addClass('active');
+        }
+      });
+    });  
+    //]]>
+    </script>
+  </body>
+</html>

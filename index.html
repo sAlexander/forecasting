@@ -1,0 +1,50 @@
+---
+layout: default
+title: Home
+---
+<div class="banner">
+  <img src="images/getcooking.jpg" width="100%" />
+  <div class="container">
+    <div class="banner-text visible-lg text-center">
+      <h1>Using weather forecasts should be as easy as cooking.</h1>
+      <p>We'll help you get the ingredients, leaving you to decide: <strong><em>what's for dinner?</em></strong></p>
+    </div>
+  </div>
+</div>
+
+<div class="container main">
+  <div class="col-12 col-lg-6">
+    <h2>Download to PostGIS</h2>
+    <a href="https://github.com/sAlexander/forecasting"><button type="button" class="btn btn-primary btn-small">Get the Code</button></a>
+    <a href="/documentation"><button type="button" class="btn btn-default btn-small">Read the Documentation</button></a>
+  </h2>
+    <h4 class="code-header">Python</h4>
+    <div class="code">
+      <pre data-language="python">
+from forecasting import models
+
+nam = models('nam')
+nam.connect(database='weather', user='chef')
+fields = ['tmp2m']
+nam.transfer(fields)</pre>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <h2>Use the API (it's free!)</h2>
+    <a href="http://api.getforecasting.com"><button type="button" class="btn btn-primary btn-small">Request an API Key</button></a>
+    <a href="http://api.getforecasting.com"><button type="button" class="btn btn-default btn-small">Read the Documentation</button></a>
+    <h4 class="code-header">Python</h4>
+    <div class="code">
+      <pre data-language="python">import urllib2
+import json
+
+url = 'http://api.getforecasting.com/KEY/40n/105.3w/temperature'
+response = urllib2.urlopen(url)
+temperature = json.loads(response.read())</pre>
+    </div>
+  </div>
+  <div class="col-12 well text-center" style="font-size: 1.5em;">
+    <p><strong>Want to see some full blown weather recipes?</strong> Checkout our <a href="tutorials">tutorials</a> and <a href="blog">blog</a>... they've got you covered.</p>
+  </div>
+
+</div> <!-- /container -->
