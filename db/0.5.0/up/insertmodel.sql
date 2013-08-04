@@ -1,7 +1,3 @@
--- Function: insertmodel(character varying)
-
--- DROP FUNCTION insertmodel(character varying);
-
 CREATE OR REPLACE FUNCTION insertmodel(newname character varying)
   RETURNS integer AS
 $BODY$

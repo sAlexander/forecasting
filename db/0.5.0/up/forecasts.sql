@@ -1,20 +1,10 @@
--- Table: forecasts
-
--- DROP TABLE forecasts;
-
 CREATE TABLE forecasts
 (
-  forecastid serial NOT NULL,
+  forecastid serial primary key,
   fieldid serial NOT NULL,
-  height_m real,
   pressure_mb real,
   datatime timestamp without time zone NOT NULL,
-  datatimeforecast timestamp without time zone,
-  CONSTRAINT forecasts_pkey PRIMARY KEY (forecastid)
-)
-WITH (
-  OIDS=FALSE
+  datatimeforecast timestamp without time zone
 );
-ALTER TABLE forecasts
-  OWNER TO salexander;
 
+create index forecasts_idx_fields on forecasts using btree (fieldid);

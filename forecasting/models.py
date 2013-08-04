@@ -1,3 +1,12 @@
+"""
+This example module shows various types of documentation available for use
+with pydoc.  To generate HTML documentation for this module issue the
+command:
+
+    pydoc -w foo
+
+"""
+
 # built-in libraries
 from struct import pack
 from io import BytesIO
@@ -13,7 +22,18 @@ import psycopg2 as pg
 # local libraries
 # NONE
 
-class Model:
+class model:
+  """Initialize a forecasting model with a given model name (nam, gfs, etc)
+
+  To use,
+  m = forecasting.model(modelabbr)
+
+  Options at the moment are:
+  nam,gfs,rap,rtma,gfs_hd
+
+  Just about everything here:
+  http://nomads.ncep.noaa.gov:9090/dods/
+  """
 
   # model
   modelname = ''
@@ -44,11 +64,22 @@ class Model:
 
 
   def __init__(self, modelname):
+    """Initilize the model with a modelname and set the url for the datafeed"""
     self.modelname = modelname
-    self.baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/{model}/{model}{date}/{model}_{hour}z'.format(model='nam',date='{date}',hour='{hour}')
+    self.baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/{model}/{model}{date}/{model}_{hour}z'.format(model=modelname,date='{date}',hour='{hour}')
 
   def connect(self, **connargs):
-    # TODO error checking and cursor creation
+    """Connect to postgis database and ensure the database has been properly setup
+
+    Sample usage:
+    m = forecasting.model(modelabbr)
+    m.connect(database="weather",user="ubuntu",password="magic",hostname="localhost")
+
+    If you're getting a 'Error connecting to database' exception, try connecting with psycgp2:
+
+    import psycpg2 as pg
+    pg.connect(PUT_ARGUMENTS_HERE)
+    """
     try:
       self.conn = pg.connect(**connargs)
       self.curs = self.conn.cursor()
@@ -62,9 +93,40 @@ class Model:
       self.dbversion = self.curs.fetchone()[0]
     except:
       self.conn.rollback()
-      self.migrate(self.VERSION)
+      self._migrate(self.VERSION)
 
-  def migrate(self,version):
+  def transfer(self, datatime, fields, geo=None):
+    """Transfer a set of fields for a given timestamp into the connected postgis database
+
+    Usage:
+    m = models('nam')
+    m.connect(database="weather")
+    fields = ['acpcpsfc','tmp2m'] # gfs
+    datatime = datetime.strptime('Aug 02 2013 12:00PM', '%b %d %Y %I:%M%p')
+    nam.transfer(datatime, fields)
+
+    Eventually, there will also be a geo dictionary that can be used to specify a prefered
+    lat/lon boundary (ie only grab a subset of available data), but at the moment, it's all or nothing.
+
+    """
+
+    # check for proper grid, set up if not present, and cache gridids
+    self._setup()
+
+    # create appropriate url
+    date = datetime.strftime(datatime, '%Y%m%d')
+    hour = datetime.strftime(datatime, '%H')
+    self.url = self.baseurl.format(date=date,hour=hour)
+
+    # Connect using pydap to the opendap server
+    self.modelconn = open_url(self.url)
+
+    # Process each field
+    for field in fields:
+      self._processfield(field) 
+
+  def _migrate(self,version):
+    """ Migrate the database to the correct version. This should be moved into a new class"""
     for files in os.listdir("../db/{version}/up".format(version=version)):
       if files.endswith('.sql'):
         filename = os.path.join("../db/{version}/up".format(version=version),files)
@@ -75,8 +137,8 @@ class Model:
     self.conn.commit()
 
 
-  def setup(self):
-    # TODO check database is at proper version
+  def _setup(self):
+    """Setup the grid and cache the gridpoints"""
 
     # Get modelid
     self.curs.execute("select insertmodel('%s');" % self.modelname)
@@ -103,36 +165,21 @@ class Model:
       print 'Initializing grid'
       lat = dat.lat[:]
       lon = dat.lon[:]
-      print 'fetched grid'
-      dtype = ([('modelid','i4'), ('geom','a25')])
-      data = np.empty(nlat*nlong,dtype)
-      data['modelid'] = self.dbmodelid
       for i in range(0,nlat):
+        print 'Loading lat ',i
         for j in range(0,nlon):
-          print i,j
-          data['geom'][i*j+j] = 'SRID=4326;POINT(%6.6f,%6.6f)' % (lat[i],lon[j])
-          self.curs.execute("insert into public.gridpoints (modelid,geom) values(%d, ST_SetSRID(ST_MakePoint(%f, %f), 4326));" % (self.dbmodelid, lat[i], lon[j]))
-      print 'starting binary upload'
-      self.copy_binary(data,'gridpoints')
-      print 'finished uploading'
+          order = i*nlon+j
+          self.curs.execute("insert into public.gridpoints (modelid,geom,ord) values(%d, ST_SetSRID(ST_MakePoint(%f, %f), 4326),%d);" % (self.dbmodelid, lat[i], lon[j], order))
       self.conn.commit()
-      print 'finished committing'
-
-    lat = np.repeat(dat.lat,nlon)
-    lon = np.tile(dat.lon,nlat)
-    self.gridpointids = self.retrievegridids(lat,lon)
-
-  def transfer(self, datatime, fields, geo=None):
-    self.setup()
-    date = datetime.strftime(datatime, '%Y%m%d')
-    hour = datetime.strftime(datatime, '%H')
-    self.url = self.baseurl.format(date=date,hour=hour)
-    self.modelconn = open_url(self.url)
-    for field in fields:
-      self.processfield(field) 
+      print 'Finished initializing grid'
 
 
-  def processfield(self, field):
+    # cache the gridpoints
+    self.gridpointids = self._retrievegridids()
+
+
+
+  def _processfield(self, field):
 
     print '------------------------'
     print '-- Processing %s' % field
@@ -146,7 +193,7 @@ class Model:
     fieldid = self.curs.fetchone()[0]
 
     # prepare the data for database entry
-    dtype = ([('forecastid','i4'), ('gridpointid','i4'), ('value','f8')])
+    dtype = ([('forecastid','i4'), ('gridpointid','i4'), ('value','f4')])
 
     # fetch the data from the server
     fullshape = fieldconn.shape
@@ -216,19 +263,10 @@ class Model:
       self.conn.commit()
 
       # Send to database
-      self.copy_binary(data, 'data')
+      self._copybinary(data, 'data')
 
-  def retrievegridids(self,lat,lon):
-    n = np.size(lat)
-    dtype = ([('ord','i4'),('lat','f4'),('lon','f4')])
-    data =np.empty(n,dtype)
-    data['ord'] = np.arange(n)
-    data['lat'] = lat
-    data['lon'] = lon
-    createtemptable = 'drop table if exists temp; create table temp (ord int primary key, lat real, lon real);'
-    self.curs.execute(createtemptable)
-    self.copy_binary(data,'temp')
-    selectgridids = "select gridpointid from temp inner join gridpoints as g on St_DWithin(g.geom,st_geomfromtext('POINT(' || temp.lat || ' ' || temp.lon || ')',4326),.005) order by ord;"
+  def _retrievegridids(self):
+    selectgridids = "select gridpointid from gridpoints where gridpoints.modelid = %d order by ord;" % self.dbmodelid
     self.conn.commit()
     self.curs.execute(selectgridids)
     rows = self.curs.fetchall()
@@ -238,7 +276,7 @@ class Model:
 
 
 
-  def prepare_binary(self,dat):
+  def _preparebinary(self,dat):
     # found here: http://stackoverflow.com/questions/8144002/use-binary-copy-table-from-with-psycopg2
     pgcopy_dtype = [('num_fields','>i2')]
     for field, dtype in dat.dtype.descr:
@@ -256,8 +294,8 @@ class Model:
     cpy.write(pack('!h', -1))  # file trailer
     return(cpy)
 
-  def copy_binary(self,dat, table):
-    cpy = self.prepare_binary(dat)
+  def _copybinary(self,dat, table,columns=''):
+    cpy = self._preparebinary(dat)
     cpy.seek(0)
     self.curs.copy_expert('COPY ' + table + ' FROM STDIN WITH BINARY', cpy)
     self.conn.commit()
@@ -267,9 +305,8 @@ class Model:
 if __name__ == '__main__':
   #fields = ['apcpsfc','hgtsfc','shtflsfc','soill0_10cm','soill10_40cm','soill40_100cm','soill100_200cm','soilm0_200cm','sotypsfc','pressfc','lhtflsfc','tcdcclm','tmpsfc','tmp2m','tkeprs']
 
-  nam = Model('nam')
-  nam.connect(database="nam", user="salexander")
-  fields = ['apcpsfc','hgtsfc']
-  datatime = datetime.strptime('Jul 21 2013  12:00PM', '%b %d %Y %I:%M%p')
+  nam = model('nam')
+  nam.connect(database="nam", user="ubuntu")
+  fields = ['acpcpsfc','tmp2m'] # gfs
+  datatime = datetime.strptime('Aug 02 2013 12:00PM', '%b %d %Y %I:%M%p')
   nam.transfer(datatime, fields)
-
