@@ -55,6 +55,9 @@ class model:
   dbversion = None
   dbmodelid = None
 
+  # misc
+  fpath = os.path.abspath(__file__)
+
   #
   VERSION = '0.5.0'
 
@@ -127,9 +130,9 @@ class model:
 
   def _migrate(self,version):
     """ Migrate the database to the correct version. This should be moved into a new class"""
-    for files in os.listdir("../db/{version}/up".format(version=version)):
+    for files in os.listdir(os.path.join(self.fpath,"db/{version}/up".format(version=version))):
       if files.endswith('.sql'):
-        filename = os.path.join("../db/{version}/up".format(version=version),files)
+        filename = os.path.join(self.fpath,"db/{version}/up".format(version=version),files)
         print 'Running migration: %s' % filename
         cmd = open(filename,'r').read()
         print cmd
