@@ -1,12 +1,3 @@
-"""
-This example module shows various types of documentation available for use
-with pydoc.  To generate HTML documentation for this module issue the
-command:
-
-    pydoc -w foo
-
-"""
-
 # built-in libraries
 from struct import pack
 from io import BytesIO
