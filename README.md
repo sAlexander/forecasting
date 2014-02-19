@@ -1,7 +1,7 @@
 forecasting.py
 ===========
 
-Get weather data easily using python. Supports gfs, nam, and rap, with support for individual weather stations on the way. Full information with examples can be found at [getforecasting.com]
+Get weather data easily using python. Supports gfs, nam, and rap, with support for individual weather stations on the way. Full information with examples can be found at [getforecasting.com](http://getforecasting.com)
 
 ## Quick Start Guide
 
