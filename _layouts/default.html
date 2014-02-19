@@ -7,56 +7,8 @@
     <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,100' rel='stylesheet' type='text/css'>
     <link href="/css/syntax-default.css" rel="stylesheet" type="text/css">
-  <style>
-  body {
-    padding-top: 50px;
-  }
+    <link href="/css/application.css" rel="stylesheet" type="text/css">
 
-  .main {
-    margin-top: 20px;
-  }
-
-  .banner {
-    position: relative;
-  }
-  .banner-text {
-    position: absolute;
-    top:2em;
-    width:30%;
-    background-color: rgba(0,0,0,0.7);
-    color: white;
-    padding: 1em;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-    border-radius: 5px;
-    font-weight:thin;
-    font-family: 'Roboto Slab', serif;
-  }
-  .banner-text h1 {
-    font-weight: thin;
-    font-family: 'Roboto Slab', serif;
-  }
-  .navbar {
-    font-weight: thin;
-    font-family: 'Roboto Slab', serif;
-  }
-
-
-  .code-header {
-    margin-bottom:0px;
-    padding-bottom:0px;
-    font-family: Courier New, Courier New, monospace;
-    color:#777;
-  }
-
-  #footer {
-    margin-top:4em;
-    height:200px;
-    background-color:#343434;
-  }
-
-
-  </style>
   </head>
   <body>
     <!-- Fixed navbar -->
@@ -106,6 +58,7 @@
     <script src="/js/respond.min.js"></script>
     <script type="text/javascript" charset="utf-8">
     //<![CDATA[
+    // Highlight the current page in the navbar
     jQuery(function() {
       jQuery('ul.nav li').each(function() {
         var href = jQuery(this).find('a').attr('href');
