@@ -40,9 +40,9 @@ temperature = json.loads(response.read())</pre>
 
   <div class="well well-large" style="background-color: #FFBB9A; border: 2px solid #cf7f58;">
     <br />
-    <form class="form-inline" role="form">
+    <form class="form-inline" role="form" action="/api/email" method="GET">
       <div class="row">
-        <input type="text" class="col-lg-6 col-lg-offset-1 input-large" placeholder="Email" id="email" />
+        <input type="text" class="col-lg-6 col-lg-offset-1 input-large" placeholder="Email" id="email" name="email" />
         <button type="submit" class="col-lg-3 col-lg-offset-1 btn btn-primary input-large">Get Your Spot</button>
         <span class="help-block col-lg-6 col-lg-offset-2">* We'll never share your email</span>
       </div>
