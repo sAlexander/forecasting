@@ -5,7 +5,8 @@ Get weather data easily using python. Supports gfs, nam, and rap, with support f
 
 ## Basic Usage
 
-```from forecasting import models
+```
+from forecasting import models
 
 nam = models('nam')
 nam.connect(database='weather', user='chef')
