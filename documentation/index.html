@@ -5,14 +5,14 @@ categories: ['tutorials']
 showinnav: true
 ---
 
-<div class="container">
-<h1>Documentation</h1>
+<div class="container main">
+  <h1>Documentation</h1>
 
-{% assign selectedcategory = site.categories.documentation %}
-{% for entry in selectedcategory %} 
-<p>
-<a href="{{ entry.url }}/">{{ entry.title }}</a></br>
-  <em>{{ entry.description }}</em>
-</p>
-{% endfor %}
+  {% assign selectedcategory = site.categories.documentation %}
+  {% for entry in selectedcategory %} 
+    <p>
+    <a href="{{ entry.url }}/">{{ entry.title }}</a></br>
+      <em>{{ entry.description }}</em>
+    </p>
+  {% endfor %}
 </div>

@@ -1,18 +1,20 @@
 ---
 layout: default
 ---
-<div class="container">
-<h1>{{page.title}}</h1>
-<div class="col-9">
-  {{content}}
-</div>
-<div class="col-3">
-{% assign selectedcategory = site.categories.documentation %}
-<ul class="nav nav-pills nav-stacked">
-{% for entry in selectedcategory %} 
-<li><a href="{{ entry.url }}/">{{ entry.title }}</a></li>
-{% endfor %}
-</ul>
-</div>
+
+<div class="container main">
+  <h1>{{page.title}}</h1>
+
+  <div class="col-lg-3 col-lg-push-9">
+    {% assign selectedcategory = site.categories.documentation %}
+    <ul class="nav nav-pills nav-stacked">
+      {% for entry in selectedcategory %} 
+        <li><a href="{{ entry.url }}/">{{ entry.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="col-lg-9 col-lg-pull-3">
+    {{content}}
+  </div>
 </div>
 

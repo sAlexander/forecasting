@@ -1,0 +1,61 @@
+---
+layout: default
+title: API
+categories: ['api']
+---
+
+<div class="banner">
+  <img src="/images/api.jpg" width="100%" />
+  <div class="container">
+    <div class="banner-text visible-lg text-center">
+      <h1>The Forecasting Frozen Dinner.</h1>
+      <p>Pop it in your favorite programming microwave and dig in.</p>
+    </div>
+  </div>
+</div>
+
+
+<div class="container">
+
+  <br />
+<div class="text-center">
+  <div class="row">
+    <div class="col-12 col-lg-6 col-lg-offset-3 text-left">
+      <h4 class="code-header">Python</h4>
+      <div class="code">
+        <pre data-language="python">import urllib2
+import json
+
+url = 'http://api.getforecasting.com/KEY/40n/105.3w/temperature'
+response = urllib2.urlopen(url)
+temperature = json.loads(response.read())</pre>
+      </div>
+    </div>
+  </div>
+
+  <br />
+
+  <h1>Be First to Use the API</h1>
+  <br />
+
+  <div class="well well-large" style="background-color: #FFBB9A; border: 2px solid #cf7f58;">
+    <br />
+    <form class="form-inline" role="form">
+      <div class="row">
+        <input type="text" class="col-lg-6 col-lg-offset-1 input-large" placeholder="Email" id="email" />
+        <button type="submit" class="col-lg-3 col-lg-offset-1 btn btn-primary input-large">Get Your Spot</button>
+        <span class="help-block col-lg-6 col-lg-offset-2">* We'll never share your email</span>
+      </div>
+    </form>
+    <br />
+  </div>
+
+  <br />
+
+  <h3 class="col-lg-8 col-lg-offset-2">
+  We'll be opening up the API in the next month for those who sign up early. If you're interested in being part of the select few, sign up now and we'll be in touch!
+  </h3>
+</div>
+
+
+</div>
