@@ -1,8 +1,15 @@
-forecasting
+forecasting.py
 ===========
-
-Interesting stuff
+getforecasting.com
 -----------
 
--  Grab lat and lon geo information from city: http://stackoverflow.com/questions/15935034/how-does-noaa-convert-city-st-to-lat-long
--  http://www.ncdc.noaa.gov/news/2013-products-and-services-guide-available-online
+Get weather data easily using python. Supports gfs, nam, and rap, with support for individual weather stations on the way. 
+
+## Quick Start Guide
+
+Check out the [quick start](http://getforecasting.com/documentation/quick-start/) guide at getforecasting.com
+
+## Documentation
+
+See the [full set of documentation](http://getforecasting.com/documentation/).
+
