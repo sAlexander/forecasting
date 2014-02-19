@@ -47,7 +47,7 @@ class model:
   dbmodelid = None
 
   # misc
-  fpath = os.path.abspath(__file__)
+  fpath = os.path.dirname(os.path.abspath(__file__))
 
   #
   VERSION = '0.5.0'
@@ -89,7 +89,7 @@ class model:
       self.conn.rollback()
       self._migrate(self.VERSION)
 
-  def transfer(self, datatime, fields, geo=None):
+  def transfer(self, fields, datatime=None, geo=None):
     """Transfer a set of fields for a given timestamp into the connected postgis database
 
     Usage:
@@ -107,6 +107,9 @@ class model:
     # check for proper grid, set up if not present, and cache gridids
     self._setup()
 
+    if datatime == None:
+      datatime = datetime.strptime('Feb 02 2014 12:00PM', '%b %d %Y %I:%M%p')
+
     # create appropriate url
     date = datetime.strftime(datatime, '%Y%m%d')
     hour = datetime.strftime(datatime, '%H')
@@ -117,7 +120,7 @@ class model:
 
     # Process each field
     for field in fields:
-      self._processfield(field) 
+      self._processfield(field,datatime) 
 
   def _migrate(self,version):
     """ Migrate the database to the correct version. This should be moved into a new class"""
@@ -173,7 +176,7 @@ class model:
 
 
 
-  def _processfield(self, field):
+  def _processfield(self, field, datatime):
 
     print '------------------------'
     print '-- Processing %s' % field
