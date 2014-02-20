@@ -5,7 +5,7 @@ category: tutorials
 description: A quick start guide to get you up and running with forecasting and Ubuntu.
 ---
 
-This guide will walk you through using forecasting as a python module to cache weather data into a postgis database. If you're instead looking to get started on the API, head over to [the API documentation](http://api.getforecasting.com).
+This guide will walk you through using forecasting as a python module to cache weather data into a postgis database. If you're instead looking to get started on the API, head over to [the API documentation](/documentation/Api).
 
 <h2 id="forecasting">Quick start for forecasting module</h2>
 
