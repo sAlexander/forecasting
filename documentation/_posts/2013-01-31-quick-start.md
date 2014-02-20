@@ -51,9 +51,9 @@ If you have problems with the above, it could be because the file described afte
 You're ready now! After [installing the forecasting module]({% post_url 2013-01-30-installation %}), you'll be ready to grab the weather data with a command like:
 
 {% highlight python %}
-from forecasting import models
+from forecasting import model
 
-nam = models('nam')
+nam = model('nam')
 nam.connect(database='weather', user='chef')
 fields = ['tmp2m']
 nam.transfer(fields)

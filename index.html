@@ -21,9 +21,9 @@ title: Home
     <h4 class="code-header">Python</h4>
     <div class="code">
       <pre data-language="python">
-from forecasting import models
+from forecasting import model
 
-nam = models('nam')
+nam = model('nam')
 nam.connect(database='weather', user='chef')
 fields = ['tmp2m']
 nam.transfer(fields)</pre>
