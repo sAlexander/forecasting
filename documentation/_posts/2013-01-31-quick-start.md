@@ -20,7 +20,7 @@ sudo pip install pydap
 
 This will get you setup with an earlier version of PostGIS. If you're looking to have the latest and greatest PostGIS 2.x.x (which we think is a great idea), go ahead and compile PostGIS 2.x.x instead.
 
-Let's now log into postgres, create our `chef` user, and setup PostGIS
+Let's now log into postgres, create our `chef` user, and setup PostGIS. You'll want to replace `chef` with your own username, or jump through some hoops to correct permissions (as [discussed on stack overflow](http://stackoverflow.com/questions/18664074/getting-error-peer-authentication-failed-for-user-postgres-when-trying-to-ge)).
 
 First, let's connect into psql
 
