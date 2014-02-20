@@ -15,12 +15,18 @@ A bare-bones installation of Raspbian 7.2 was installed on the 'Pi, and the 'Pi 
 
 Forecasting.py version 0.5.0 was tested, using the [quick start guide](/documentation/quick-start/).
 
-<h2 id="performance">Performance</h2>
+<h2 id="download-performance">Download Performance</h2>
 
 Considering the processor in the 'Pi, performance was quite good. However, it was _substantially_ slower than a mid-price desktop.
 
 Here are a few timings:
 
--  **i7 3770k**: ~30 seconds to download entire nam temperature forecast (xxxxx entries)
--  **Raspberry Pi**: ~10 minutes to download entire nam temperature forecast (xxxx entries)
+-  **i7 3770k**: ~2 minutes to download entire nam temperature forecast (8,600,820 entries)
+-  **Raspberry Pi**: ~25 minutes to download entire nam temperature forecast (8,600,820 entries)
+
+However, the two results above were far from controlled, and the 'Pi might have been suffering from lower bandwidth relative to the i7.
+
+<h2 id="query-performance">Query Performance</h2>
+
+Query performance is quite nice. With the ~8 million records in the database, selecting one for a given time and point took 2.004 ms... speedy!
 
