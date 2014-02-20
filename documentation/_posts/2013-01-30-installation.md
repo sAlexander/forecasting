@@ -9,7 +9,7 @@ Hello
 
 ## Python and OS Support
 
-The forecasting module is known to work with python 2.7 and Ubuntu 12.04-13.04.
+The forecasting module is known to work with python 2.7 and Ubuntu 12.04-13.04 or Debian 7.2 (on a [Raspberry Pi](/documentation/Raspberry-Pi/)!).
 
 More testing is underway with additional python versions as well as other linux distributions, Mac OSX, and Windows.
 
