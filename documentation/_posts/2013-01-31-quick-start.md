@@ -11,10 +11,10 @@ This guide will walk you through using forecasting as a python module to cache w
 
 This guide assumes you're using Linux, and has been tested with Ubuntu 12.04 to 13.04. If you've played around with the code on other operating systems with success (or without success), let us know!
 
-First, let's install all of the components required for PostGIS and the python dependencies:
+First, let's install all of the components required for PostGIS and the python dependencies. Most of these are likely already installed on your system, but I've included them below in case you're starting from a bare-bones setup.
 
 {% highlight bash %}
-sudo apt-get install build-essential postgresql-9.1 postgresql-9.1-postgis python-numpy python-pip python-psycopg2
+sudo apt-get install build-essential git postgresql-9.1 postgresql-9.1-postgis python-numpy python-pip python-psycopg2 python-dev python-genshi python-paste python-pastedeploy python-httplib2 python-pastescript
 sudo pip install pydap
 {% endhighlight %}
 
@@ -41,9 +41,12 @@ grant all privileges on database postgres to chef;
 Finally, let's setup postGIS in the weather database
 
 {% highlight bash %}
-psql -d weather -f /usr/share/postgresql-9.1-postgis/lwpostgis.sql
-psql -d weather -f /usr/share/postgresql-9.1-postgis/spatial_ref_sys.sql
+sudo -u postgres psql -d weather -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
+sudo -u postgres psql -d weather -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql 
+sudo -u postgres psql -d weather -f /usr/share/postgresql/9.1/contrib/postgis_comments.sql
 {% endhighlight %}
+
+If you have problems with the above, it could be because the file described after `-f` is incorrect. Try `locate postgis.sql` to find the correct location.
 
 You're ready now! After [installing the forecasting module]({% post_url 2013-01-30-installation %}), you'll be ready to grab the weather data with a command like:
 
