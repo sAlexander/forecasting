@@ -15,7 +15,7 @@ import psycopg2 as pg
 # local libraries
 # NONE
 
-class model:
+class Model:
   """Initialize a forecasting model with a given model name (nam, gfs, etc)
 
   To use,
@@ -105,6 +105,23 @@ class model:
     numdates = [int(i) for i in results]
     return [np.min(numdates), np.max(numdates)]
 
+  def getlatesttime(self):
+    """Get the datatime for the latest time available"""
+
+    # refresh the daterange
+    self.daterange = self.getdaterange()
+    lastday = self.daterange[1]
+
+    result = None
+    for hour in range(0,24):
+      datatime = datetime.strptime('%s%02d' % (lastday, hour), '%Y%m%d%H')
+      url = self._createurl(datatime)
+      res = self._checkurl(url)
+      if res == True:
+        result = datatime
+    return result
+
+
   def connect(self, **connargs):
     """Connect to postgis database and ensure the database has been properly setup
 
@@ -161,10 +178,18 @@ class model:
       print '-----------------------------'
       bounds = self._parsegeos(geos)
 
-    # create appropriate url
-    date = datetime.strftime(datatime, '%Y%m%d')
-    hour = datetime.strftime(datatime, '%H')
-    self.url = self.baseurl.format(date=date,hour=hour)
+
+    # create the url for the datatime
+    url = self._createurl(datatime)
+
+    # check the url
+    check = self._checkurl(url)
+    if check == True:
+      print 'Datatime is available on the remote server'
+      self.url = url
+    else:
+      print 'Datatime is not available on the remote server'
+      raise Exception('Datatime is not available on the remote server')
 
     # Connect using pydap to the opendap server
     self.modelconn = open_url(self.url)
@@ -173,6 +198,21 @@ class model:
     for field in fields:
       for bound in bounds:
         self._processfield(field,datatime,bound) 
+
+  def _createurl(self,datatime):
+    # create appropriate url
+    date = datetime.strftime(datatime, '%Y%m%d')
+    hour = datetime.strftime(datatime, '%H')
+    return self.baseurl.format(date=date,hour=hour)
+
+  def _checkurl(self,url):
+    # We have to check the das file for an error
+    f = urllib2.urlopen(url+'.das')
+    response = f.read()
+    if response[0:5] == 'Error':
+      return False
+    else:
+      return True
 
   def _migrate(self,version):
     """ Migrate the database to the correct version. This should be moved into a new class"""
@@ -199,9 +239,9 @@ class model:
     ## Check to see if grid has correct number of entries, and cache gridids locally
     # grab the shape of the lat lon points
     field = 'tmp2m'
-    yesterday = (date.today() - timedelta(1)).strftime('%Y%m%d')
-    morning = '00'
-    self.modelconn = open_url(self.baseurl.format(date=yesterday, hour=morning))
+    datatime = self.getlatesttime()
+    url = self._createurl(datatime)
+    self.modelconn = open_url(url)
     dat = self.modelconn[field]
     shp = dat.shape
     nlat = shp[1]
@@ -460,13 +500,9 @@ class model:
 if __name__ == '__main__':
   #fields = ['apcpsfc','hgtsfc','shtflsfc','soill0_10cm','soill10_40cm','soill40_100cm','soill100_200cm','soilm0_200cm','sotypsfc','pressfc','lhtflsfc','tcdcclm','tmpsfc','tmp2m','tkeprs']
 
-  nam = model('rap')
-  print nam.getdaterange()
+  nam = Model('nam')
   nam.connect(database="weather", user="salexander")
-  nam.info()
-  exit
-
+  datatime =  nam.getlatesttime()
   geos = {'lat': 39.97316, 'lon': -105.145, 'k':8}
   fields = ['tmp2m'] # nam
-  datatime = datetime.strptime('Feb 20 2014 12:00PM', '%b %d %Y %I:%M%p')
   nam.transfer(fields, datatime,geos=geos)
