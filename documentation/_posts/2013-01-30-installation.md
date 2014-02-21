@@ -30,7 +30,7 @@ sudo python setup.py install
 That's it! To import, you can run something like
 
 ```python
-from forecasting import models
+from forecasting import Model
 ```
 
 ## Install to Your Project
@@ -40,6 +40,6 @@ If you prefer to keep the source code local rather than install it to your syste
 You can now import the package in your particular project with:
 
 ```python
-from forecasting import models
+from forecasting import Model
 ```
 

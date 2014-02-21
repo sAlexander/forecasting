@@ -38,9 +38,9 @@ geos = {
 ### A simple example using geos
 
 {% highlight python %}
-from forecasting import model
+from forecasting import Model
 
-nam = model('nam')
+nam = Model('nam')
 nam.connect(database='weather', user='chef')
 
 fields = ['tmp2m']
