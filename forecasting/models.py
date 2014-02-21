@@ -36,8 +36,8 @@ class model:
   gridpointids = []
 
   # geo
-  latrange  = []
-  lonrange  = []
+  lats = []
+  lons  = []
   timerange = []
 
   # database
@@ -151,6 +151,8 @@ class model:
     shp = dat.shape
     nlat = shp[1]
     nlon = shp[2]
+    self.lats = data.lat[:]
+    self.lons = data.lon[:]
 
     # grab number of gridpoints
     self.curs.execute("select count(1) from gridpoints where modelid = %d" % self.dbmodelid)
@@ -160,8 +162,8 @@ class model:
       print 'Correct grid initialized'
     else:
       print 'Initializing grid'
-      lat = dat.lat[:]
-      lon = dat.lon[:]
+      lat = self.lats
+      lon = self.lons
       for i in range(0,nlat):
         print 'Loading lat ',i
         for j in range(0,nlon):
@@ -261,6 +263,57 @@ class model:
 
       # Send to database
       self._copybinary(data, 'data')
+
+
+  def _parsegeos(self,geo):
+    # parse the goes list or dictionary
+
+    results = []
+
+    ###############
+    ## if it's a single geo item already in dict form, parse it!
+    if isinstance(geo,dict):
+      # if it's a single point definition
+      if all (k in geo for k in ('lat','lon')):
+        if 'k' not in geo:
+          geo['k'] = 1
+        # run query to find the k closest points
+        "select gridpointid, ST_AsText(geom) from gridpoints gp order by gp.geom <-> ST_SetSRID(ST_MakePoint(40,-105),4326) limit 5;"
+
+        # what if it's quicker to do a single bound? Check for this?
+
+      # if it's a bounded point
+      elif all (k in geo for k in ('n','s','e','w')):
+        if 'i' not in geo:
+          geo['i'] = 1
+        sbound = np.argmax(self.lat >= geo['s']) 
+        nbound = np.argmax(self.lat >= geo['n']) - 1
+        wbound = np.argmax(self.lon >= geo['w']) 
+        ebound = np.argmax(self.lon >= geo['e']) - 1
+
+        # find bounds that include n,s,e,w
+
+      # we don't know what it is
+      else:
+        print('Geos does not match expected form. See geos doc')
+        raise Exception('Unknown geos form')
+
+    ###############
+    ## if it's a list of geos, recursively call this function
+    elif isinstance(geo,list) or isinstance(geo,tuple):
+      for g in geo:
+        results.extend(self._parsegeos(self,g))
+
+    ###############
+    ## we don't know what it is!?!?
+    else:
+      print 'Unknown geos type... it should be a dictionary or a list'
+      raise Exception('Unknown geos type')
+    
+    # return the list of geos
+    return results
+
+
 
   def _retrievegridids(self):
     selectgridids = "select gridpointid from gridpoints where gridpoints.modelid = %d order by ord;" % self.dbmodelid
