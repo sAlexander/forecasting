@@ -24,7 +24,7 @@ Here are a few timings:
 -  **i7 3770k**: ~2 minutes to download entire nam temperature forecast (8,600,820 entries)
 -  **Raspberry Pi**: ~25 minutes to download entire nam temperature forecast (8,600,820 entries)
 
-However, the two results above were far from controlled, and the 'Pi might have been suffering from lower bandwidth relative to the i7.
+However, the two results above were representative of the speed in other areas: inserting the grid for the nam model matched the performance above, and required no network connection.
 
 <h2 id="query-performance">Query Performance</h2>
 
