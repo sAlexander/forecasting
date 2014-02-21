@@ -5,7 +5,7 @@
 CREATE TABLE data
 (
   forecastid serial NOT NULL,
-  gridid serial NOT NULL,
+  gridpointid serial NOT NULL,
   value real,
-  PRIMARY KEY (forecastid, gridid)
+  PRIMARY KEY (forecastid, gridpointid)
 );

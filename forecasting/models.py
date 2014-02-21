@@ -4,6 +4,8 @@ from io import BytesIO
 from datetime import date, datetime, timedelta
 import glob
 import os
+import re
+import urllib2
 
 # third party libraries
 import numpy as np
@@ -28,7 +30,8 @@ class model:
 
   # model
   modelname = ''
-  urlbase   = ''
+  baseurl   = ''
+  timeurl  = ''
   url = ''
 
   # modelconn
@@ -36,9 +39,11 @@ class model:
   gridpointids = []
 
   # geo
-  lats = []
-  lons  = []
-  timerange = []
+  lat = []
+  lon  = []
+  nlat = None
+  nlon = None
+  daterange = []
 
   # database
   conn = None
@@ -61,6 +66,44 @@ class model:
     """Initilize the model with a modelname and set the url for the datafeed"""
     self.modelname = modelname
     self.baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/{model}/{model}{date}/{model}_{hour}z'.format(model=modelname,date='{date}',hour='{hour}')
+    self.timeurl = 'http://nomads.ncep.noaa.gov:9090/dods/{model}'.format(model=modelname)
+
+  def info(self):
+    """Describe the current model. This includes things like the model name, url, number of lat/lon, etc"""
+
+    self._setup()
+
+    print '----------------------'
+    print '-- Model Name: %s' % self.modelname
+    print '----------------------'
+    print ''
+    print 'URL: %s' % self.baseurl
+    print ''
+    print 'LATITUDE'
+    print 'num: %d' % self.nlat
+    print 'min: %f' % np.min(self.lat)
+    print 'max: %f' % np.max(self.lat)
+    print ''
+    print 'LONGITUDE'
+    print 'num: %d' % self.nlon
+    print 'min: %f' % np.min(self.lon)
+    print 'max: %f' % np.max(self.lon)
+    print ''
+    print 'TIME'
+    print 'min: %s' % datetime.strftime(datetime.strptime(str(self.daterange[0]), '%Y%m%d'),'%Y-%m-%d')
+    print 'max: %s' % datetime.strftime(datetime.strptime(str(self.daterange[1]), '%Y%m%d'),'%Y-%m-%d')
+
+
+
+  def getdaterange(self):
+    """Get the date range for the current model"""
+
+    regex = re.compile("%s(\d{8})" % self.modelname)
+    f = urllib2.urlopen(self.timeurl)
+
+    results = regex.findall(f.read())
+    numdates = [int(i) for i in results]
+    return [np.min(numdates), np.max(numdates)]
 
   def connect(self, **connargs):
     """Connect to postgis database and ensure the database has been properly setup
@@ -89,7 +132,7 @@ class model:
       self.conn.rollback()
       self._migrate(self.VERSION)
 
-  def transfer(self, fields, datatime=None, geo=None):
+  def transfer(self, fields, datatime=None, geos=None):
     """Transfer a set of fields for a given timestamp into the connected postgis database
 
     Usage:
@@ -110,6 +153,14 @@ class model:
     if datatime == None:
       datatime = datetime.strptime('Feb 02 2014 12:00PM', '%b %d %Y %I:%M%p')
 
+    if geos == None:
+      bounds=[[[0,self.nlat,1],[0,self.nlon,1]]]
+    else:
+      print '-----------------------------'
+      print '-- parsing geos information:'
+      print '-----------------------------'
+      bounds = self._parsegeos(geos)
+
     # create appropriate url
     date = datetime.strftime(datatime, '%Y%m%d')
     hour = datetime.strftime(datatime, '%H')
@@ -120,7 +171,8 @@ class model:
 
     # Process each field
     for field in fields:
-      self._processfield(field,datatime) 
+      for bound in bounds:
+        self._processfield(field,datatime,bound) 
 
   def _migrate(self,version):
     """ Migrate the database to the correct version. This should be moved into a new class"""
@@ -141,9 +193,12 @@ class model:
     self.curs.execute("select insertmodel('%s');" % self.modelname)
     self.dbmodelid = self.curs.fetchone()[0]
 
+    # Get the time range
+    self.daterange = self.getdaterange()
+
     ## Check to see if grid has correct number of entries, and cache gridids locally
     # grab the shape of the lat lon points
-    field = 'apcpsfc'
+    field = 'tmp2m'
     yesterday = (date.today() - timedelta(1)).strftime('%Y%m%d')
     morning = '00'
     self.modelconn = open_url(self.baseurl.format(date=yesterday, hour=morning))
@@ -151,8 +206,10 @@ class model:
     shp = dat.shape
     nlat = shp[1]
     nlon = shp[2]
-    self.lats = data.lat[:]
-    self.lons = data.lon[:]
+    self.nlat = nlat
+    self.nlon = nlon
+    self.lat = dat.lat[:]
+    self.lon = dat.lon[:]
 
     # grab number of gridpoints
     self.curs.execute("select count(1) from gridpoints where modelid = %d" % self.dbmodelid)
@@ -162,8 +219,8 @@ class model:
       print 'Correct grid initialized'
     else:
       print 'Initializing grid'
-      lat = self.lats
-      lon = self.lons
+      lat = self.lat
+      lon = self.lon
       for i in range(0,nlat):
         print 'Loading lat ',i
         for j in range(0,nlon):
@@ -178,48 +235,73 @@ class model:
 
 
 
-  def _processfield(self, field, datatime):
+  def _processfield(self, field, datatime, bound):
 
     print '------------------------'
     print '-- Processing %s' % field
     print '------------------------'
 
-    # Grab information
+    # Tell pydap which field we're interested in
     fieldconn = self.modelconn[field]
 
-    # Select the fieldid
+    # Select the fieldid from the database
     self.curs.execute("select insertfield(%d,'%s');" % (self.dbmodelid,field))
     fieldid = self.curs.fetchone()[0]
 
-    # prepare the data for database entry
+    # prepare a data structure for database entry
     dtype = ([('forecastid','i4'), ('gridpointid','i4'), ('value','f4')])
 
-    # fetch the data from the server
+    # fetch shape information about the data
     fullshape = fieldconn.shape
     dim = fieldconn.dimensions
 
     # cases for datatypes
     TIMEONLY = 1
     TIMEANDLEV = 2
+
+    # set the bounds
+    ilats = bound[0][0]
+    ilate = bound[0][1]
+    ilati = bound[0][2]
+    ilons = bound[1][0]
+    ilone = bound[1][1]
+    iloni = bound[1][2]
+    latrange = np.arange(ilats,ilate,ilati)
+    lonrange = np.arange(ilons,ilone,iloni)
+
+
+
     if len(fullshape) == 3 and dim[0] == 'time':
       print 'field has three components: time, lat, lon'
-      dat = fieldconn[:,:,:]
+
+      # grab the data container
+      dat = fieldconn[:,ilats:ilate:ilati,ilons:ilone:iloni]
+
+      # grab information about the container shape
       shp = dat.shape
       ntime = shp[0]
       nlat = shp[1]
       nlon = shp[2]
+
+      # create iterates to loop over
       iterates = np.empty([ntime,2])
       iterates[:,0] = np.arange(0,ntime)
       iterates[:,1] = None
       itercase = TIMEONLY
     elif len(fullshape) == 4 and dim[0] == 'time' and dim[1] == 'lev':
       print 'field has four components: time, lev, lat, lon'
-      dat = fieldconn[:,0:fullshape[1]:4,:,:]
+
+      # grab the data container
+      dat = fieldconn[:,0:fullshape[1]:4, ilats:ilate:ilati,ilons:ilone:iloni]
+
+      # grab information about the container shape
       shp = dat.shape
       ntime = shp[0]
       nlev = shp[1]
       nlat = shp[2]
       nlon = shp[3]
+
+      # create iterates to loop over
       iterates = np.empty([ntime*nlev,2])
       iterates[:,0] = np.repeat(np.arange(0,ntime),nlev)
       iterates[:,1] = np.tile(np.arange(0,nlev),ntime)
@@ -245,24 +327,35 @@ class model:
         self.curs.execute("select insertforecast(%d,%f,'%s','%s');" % (fieldid, lev, datatime, datatimeforecast))
       forecastid = self.curs.fetchone()[0]
 
-      # Setup the data
+      # set up the grid point holder
+      tord = []
+      for i in latrange:
+        for j in lonrange:
+          tord.append(i*self.nlon + j)
+
+      # fill up the data structure from the data container
       data = np.empty(nlat*nlon,dtype)
       if itercase == TIMEONLY:
         data['value'] = np.reshape(dat.array[it,:,:],nlat*nlon)
       elif itercase == TIMEANDLEV:
         data['value'] = np.reshape(dat.array[it,ilev,:,:],nlat*nlon)
-      data['gridpointid'] = self.gridpointids[:]
+      data['gridpointid'] = self.gridpointids[tord]
       data['forecastid'] = np.ones(nlat*nlon)*forecastid
 
       # Remove bad data
       data = data[data['value'] < 1e10,:]
 
-      # Clear our entries associated with this forecastid
-      self.curs.execute('delete from data where forecastid = %d' % forecastid)
-      self.conn.commit()
-
       # Send to database
-      self._copybinary(data, 'data')
+      try:
+        # this will fail if there are duplicates, but it's way faster
+        self.conn.commit()
+        self._copybinary(data, 'data')
+      except:
+        # try to insert more safely
+        self.conn.rollback()
+        self._copybinary(data, 'stagingdata')
+        self.curs.execute('select applystagingdata();')
+        self.conn.commit()
 
 
   def _parsegeos(self,geo):
@@ -278,7 +371,18 @@ class model:
         if 'k' not in geo:
           geo['k'] = 1
         # run query to find the k closest points
-        "select gridpointid, ST_AsText(geom) from gridpoints gp order by gp.geom <-> ST_SetSRID(ST_MakePoint(40,-105),4326) limit 5;"
+        q = "select ord, ST_AsText(geom) from gridpoints gp where gp.modelid = %d order by gp.geom <-> ST_SetSRID(ST_MakePoint(%f,%f),4326) limit %d;" % (self.dbmodelid, geo['lat'],geo['lon'],geo['k'])
+        self.curs.execute(q)
+        rows = self.curs.fetchall()
+        for order in rows:
+          order = order[0]
+          ilat = int(order/self.nlon)
+          ilon = order % self.nlon
+          results.append([[ilat,ilat+1,1],[ilon,ilon+1,1]])
+          print 'latitude = %f' % self.lat[ilat]
+          print 'longitude = %f' % self.lon[ilon]
+          print ''
+
 
         # what if it's quicker to do a single bound? Check for this?
 
@@ -287,10 +391,11 @@ class model:
         if 'i' not in geo:
           geo['i'] = 1
         sbound = np.argmax(self.lat >= geo['s']) 
-        nbound = np.argmax(self.lat >= geo['n']) - 1
+        nbound = np.argmax(self.lat >= geo['n']) 
         wbound = np.argmax(self.lon >= geo['w']) 
-        ebound = np.argmax(self.lon >= geo['e']) - 1
+        ebound = np.argmax(self.lon >= geo['e']) 
 
+        results.append([[sbound,nbound,geo['i']],[wbound,ebound,geo['i']]])
         # find bounds that include n,s,e,w
 
       # we don't know what it is
@@ -302,7 +407,7 @@ class model:
     ## if it's a list of geos, recursively call this function
     elif isinstance(geo,list) or isinstance(geo,tuple):
       for g in geo:
-        results.extend(self._parsegeos(self,g))
+        results.extend(self._parsegeos(g))
 
     ###############
     ## we don't know what it is!?!?
@@ -355,8 +460,13 @@ class model:
 if __name__ == '__main__':
   #fields = ['apcpsfc','hgtsfc','shtflsfc','soill0_10cm','soill10_40cm','soill40_100cm','soill100_200cm','soilm0_200cm','sotypsfc','pressfc','lhtflsfc','tcdcclm','tmpsfc','tmp2m','tkeprs']
 
-  nam = model('nam')
-  nam.connect(database="nam", user="ubuntu")
-  fields = ['acpcpsfc','tmp2m'] # gfs
-  datatime = datetime.strptime('Aug 02 2013 12:00PM', '%b %d %Y %I:%M%p')
-  nam.transfer(datatime, fields)
+  nam = model('rap')
+  print nam.getdaterange()
+  nam.connect(database="weather", user="salexander")
+  nam.info()
+  exit
+
+  geos = {'lat': 39.97316, 'lon': -105.145, 'k':8}
+  fields = ['tmp2m'] # nam
+  datatime = datetime.strptime('Feb 20 2014 12:00PM', '%b %d %Y %I:%M%p')
+  nam.transfer(fields, datatime,geos=geos)

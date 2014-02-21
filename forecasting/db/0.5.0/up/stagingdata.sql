@@ -1,6 +1,6 @@
 CREATE TABLE stagingdata
 (
-  lat real,
-  lon real,
+  forecastid serial NOT NULL,
+  gridpointid serial NOT NULL,
   value real
 );
