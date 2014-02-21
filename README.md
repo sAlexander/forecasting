@@ -6,9 +6,9 @@ Get weather data easily using python. Supports gfs, nam, and rap, with support f
 ## Basic Usage
 
 ```
-from forecasting import model
+from forecasting import Model
 
-nam = model('nam')
+nam = Model('nam')
 nam.connect(database='weather', user='chef')
 fields = ['tmp2m']
 nam.transfer(fields)
