@@ -1,2 +1,2 @@
-from forecasting.models import model
+from forecasting.model import Model
 
