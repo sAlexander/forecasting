@@ -207,8 +207,11 @@ class Model:
 
   def _checkurl(self,url):
     # We have to check the das file for an error
-    f = urllib2.urlopen(url+'.das')
-    response = f.read()
+    try:
+        f = urllib2.urlopen(url+'.das')
+        response = f.read()
+    except:
+        return False
     if response[0:5] == 'Error':
       return False
     else:
