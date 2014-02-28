@@ -1,17 +1,29 @@
+# This is an example configuration file for the daemon
+# 
+# You can run it by calling:
+#    python forecast/daemon.py nam.yaml
+#
+# You can check how it's going by looking at the output:
+#    tail -f nam-boulder-out.log
+#
+# and then you can kill it with:
+#    cat nam-boulder.pid | xargs kill
+#    rm nam-boulder.pid
+
 name: nam-boulder
-model: nam
+model: nam                          # required
 database:
     database: weather
     user: salexander
-fields:
+fields:                             # required
     - tmp2m
 geos:
     lat: 40
     lon: -100
     k: 4
-poll: 600
-modelint: 21600
-pid: ./nam-boulder.pid
+poll: 600                           # required
+modelint: 21600                     # required
+pid: ./nam-boulder.pid  
 stdin: /dev/null
 stdout: ./nam-boulder-out.log
 stderr: ./nam-boulder-err.log
