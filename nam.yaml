@@ -1,0 +1,17 @@
+name: nam-boulder
+model: nam
+database:
+    database: weather
+    user: salexander
+fields:
+    - tmp2m
+geos:
+    lat: 40
+    lon: -100
+    k: 4
+poll: 600
+modelint: 21600
+pid: ./nam-boulder.pid
+stdin: /dev/null
+stdout: ./nam-boulder-out.log
+stderr: ./nam-boulder-err.log

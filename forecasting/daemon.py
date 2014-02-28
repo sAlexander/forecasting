@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-import sys, os, time, atexit
+import sys
+import os
+import time
+import atexit
+import datetime
 from signal import SIGTERM
 
 from model import Model
@@ -137,18 +141,116 @@ class DaemonParent:
         """
 
 class Daemon(DaemonParent):
+
+    config = None
+
     def run(self):
-      print 'running Daemon'
+        print 'running Daemon'
+
+        # check that it has all of the needed fields
+        if all([i in config for i in ('model','database','fields')]):
+            print 'its got all the needed fields'
+        else:
+            print 'youre missing some important fields... make sure you have model, database, and fields'
+            raise Exception('Config file missing item')
+
+        m = Model(self.config['model'])
+        m.connect(**self.config['database'])
+        latest = m.getlatesttime()
+        args = {}
+        if 'geos' in config:
+            args['geos'] = config['geos']
+        else:
+            args['geos'] = None
+
+        ntries = 0
+        ntriesmax = max(int(config['modelint']/config['poll']*2/3),1)
+        print "We'll try each download up to four times."
+  
+        while True:
+            
+            starttime = time.time()
+
+            url = m._createurl(latest)
+            check = m._checkurl(url)
+            if check:
+                print 'The new data is available! Downloading ...'
+                try:
+                    if ntries < ntriesmax:
+                        ntries = ntries+1
+                        m.transfer(config['fields'],latest,**args)
+                    latest = latest + datetime.timedelta(seconds=self.config['modelint'])
+                    ntries = 0
+                except:
+                    print 'An error occured in downloading the data... it might not actually be available'
+                print 'The next run will happen at %s' % latest
+            else:
+                print 'No new data. Sad face'
+            endtime = time.time()
+            pausetime = max(
+                            config['poll'] - ( endtime - starttime ),
+                            0
+                            )
+            print 'Pausing for %d seconds' % pausetime
+            time.sleep(pausetime)
 
 
 if __name__ == '__main__':
-  pid='./daemon.pid'
-  d = Daemon(pid)
+    # if we're called from the commandline, let's try a couple of things:
+    #   no arguments: start up with reasonable defaults
+    #   arguments: check if it's a yaml file with all the cool stuff
 
-  config = {}
-  config['database'] = {'database': 'weather', 'user': 'salexander'}
-  config['fields'] = ['tmp2m']
-  config['geos'] = {'lat': 40, 'lon': -100, 'k':4}
 
-  d.model['nam'] = config
-  d.run()
+    if len(sys.argv) < 2:
+        pid=    os.path.abspath('./daemon.pid')
+        stdin = os.path.abspath('./in.log')
+        stdout= os.path.abspath('./out.log')
+        stderr= os.path.abspath('./err.log')
+
+        d = Daemon(pid, stdin, stdout, stderr)
+        config = {}
+
+        # model info
+        config['model'] = 'rap'
+        config['database'] = {'database': 'weather', 'user': 'salexander'}
+        config['fields'] = ['tmp2m','vgrd10m','ugrd10m','gustsfc']
+        config['geos'] = {'n': 42, 's': 35, 'e':-100, 'w':-113}
+        config['modelint'] = 3600*6 # 6 hours
+        config['poll']     = 600    # 10 minutes
+
+        d.config = config
+        d.start()
+    elif os.path.isfile(sys.argv[1]) and sys.argv[1].split('.')[-1] == 'yaml':
+        import yaml
+        # treat it as a yaml file
+        try:
+            config = yaml.load(open(sys.argv[1],'r').read())
+        except:
+            raise Exception('Could not load yaml information')
+
+        if all([i in config for i in ['model','fields','modelint','poll']]):
+            if 'pid' in config:
+                pid=os.path.abspath(config['pid'])
+            else:
+                pid = os.path.abspath('./daemon.pid')
+
+            startup = {}
+            for i in ['stdin','stdout','stderr']:
+                if i in config:
+                    startup[i] = os.path.abspath(config[i])
+
+            d = Daemon(pid,**startup)
+
+            print 'Starting daemon'
+            d.config = config
+            d.start()
+        else:
+            print 'Make sure you have the model, fields, modelint, and poll fields. Youll often need a database field as well'
+            raise Exception('Badly configured file')
+
+    else:
+        print sys.argv[1].split('.')
+        print 'I dont understand what youre saying. I accept a yaml file as an imput on the command line. Make sure it ends in yaml.'
+        print 'Exiting ...'
+        raise Exception('Unknown input file')
+
