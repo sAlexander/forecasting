@@ -168,7 +168,7 @@ class Model:
         self._setup()
 
         if datatime == None:
-            datatime = datetime.strptime('Feb 02 2014 12:00PM', '%b %d %Y %I:%M%p')
+            datatime = self.getlatesttime()
 
         if geos == None:
             bounds=[[[0,self.nlat,1],[0,self.nlon,1]]]
