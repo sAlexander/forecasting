@@ -219,9 +219,11 @@ class Model:
 
     def _migrate(self,version):
         """ Migrate the database to the correct version. This should be moved into a new class"""
-        for files in os.listdir(os.path.join(self.fpath,"db/{version}/up".format(version=version))):
-            if files.endswith('.sql'):
-                filename = os.path.join(self.fpath,"db/{version}/up".format(version=version),files)
+        files = os.listdir(os.path.join(self.fpath,"db/{version}/up".format(version=version)))
+        files.sort()
+        for file in files:
+            if file.endswith('.sql'):
+                filename = os.path.join(self.fpath,"db/{version}/up".format(version=version),file)
                 print 'Running migration: %s' % filename
                 cmd = open(filename,'r').read()
                 print cmd
