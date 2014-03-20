@@ -366,10 +366,10 @@ class Model:
 
             # Select (or create) the forecastid
             if np.isnan(ilev):
-                self.curs.execute("select insertforecast(%d,null,'%s','%s');" % (fieldid, datatime, datatimeforecast))
+                self.curs.execute("select insertforecast(%d,null,'%s',date_trunc('minute','%s' + interval '30 seconds');" % (fieldid, datatime, datatimeforecast))
             else:
                 lev = dat.lev[ilev]
-                self.curs.execute("select insertforecast(%d,%f,'%s','%s');" % (fieldid, lev, datatime, datatimeforecast))
+                self.curs.execute("select insertforecast(%d,%f,'%s',date_trunc('minute','%s' + interval '30 seconds');" % (fieldid, lev, datatime, datatimeforecast))
             forecastid = self.curs.fetchone()[0]
 
             # set up the grid point holder
