@@ -11,6 +11,8 @@ class Database:
     dbversion = None
     dbmodelid = None
 
+    fpath = os.path.dirname(os.path.abspath(__file__))
+
     def _version(self):
         return '0.5.0'
 
