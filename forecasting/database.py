@@ -1,3 +1,4 @@
+import os
 import psycopg2 as pg
 import numpy as np
 from io import BytesIO
