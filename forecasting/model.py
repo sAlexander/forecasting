@@ -228,7 +228,7 @@ class Model:
             print 'Correct grid initialized'
         else:
             print 'Initializing grid'
-            self.database.setupgrid()
+            self.database.setupgrid(self.lat,self.lon)
 
         # cache the gridpoints
         self.gridpointids = self.database.retrievegridids()
