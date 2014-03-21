@@ -10,7 +10,7 @@ class Database:
     dbversion = None
     dbmodelid = None
 
-    def _version():
+    def _version(self):
         return '0.5.0'
 
     def __init__(self, **connargs):
