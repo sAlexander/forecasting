@@ -74,7 +74,7 @@ class Database:
             print 'Loading lat ',i
             for j in range(0,nlon):
                 order = i*nlon+j
-                self.curs.execute("insert into public.gridpoints (modelid,geom,ord) values(%d, ST_SetSRID(ST_MakePoint(%f, %f), 4326),%d);" % (self.dbmodelid, lat[i], lon[j], order))
+                self.curs.execute("insert into public.gridpoints (modelid,geom,ord) values(%d, ST_SetSRID(ST_MakePoint(%f, %f), 4326),%d);" % (self.dbmodelid, lon[i], lat[j], order))
         self.conn.commit()
         print 'Finished initializing grid'
 
@@ -96,7 +96,7 @@ class Database:
 
     def getknn(self,lat,lon,k,nlon):
         results = []
-        q = "select ord, ST_AsText(geom) from gridpoints gp where gp.modelid = %d order by gp.geom <-> ST_SetSRID(ST_MakePoint(%f,%f),4326) limit %d;" % (self.dbmodelid, lat, lon, k)
+        q = "select ord, ST_AsText(geom) from gridpoints gp where gp.modelid = %d order by gp.geom <-> ST_SetSRID(ST_MakePoint(%f,%f),4326) limit %d;" % (self.dbmodelid, lon, lat, k)
         self.curs.execute(q)
         rows = self.curs.fetchall()
         for order in rows:
