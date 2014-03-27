@@ -29,9 +29,15 @@ class Database:
         try:
             self.curs.execute('select forecastingversion()')
             self.dbversion = self.curs.fetchone()[0]
+            if self.dbversion != self._version():
+                self._migrate(self._version())
         except:
             self.conn.rollback()
             self._migrate(self._version())
+        print 'Database initialized'
+
+    def close(self):
+        self.conn.close()
 
     def _migrate(self,version):
         """ Migrate the database to the correct version. This should be moved into a new class"""
@@ -80,7 +86,7 @@ class Database:
 
     def getforecastid(self,fieldid,datatime,datatimeforecast,ilev):
         # Select (or create) the forecastid
-        if np.isnan(ilev):
+        if ilev == None or np.isnan(ilev):
             self.curs.execute("select insertforecast(%d,null,'%s',date_trunc('minute',timestamp '%s' + interval '30 seconds'));" % (fieldid, datatime, datatimeforecast))
         else:
             lev = dat.lev[ilev]
@@ -144,6 +150,58 @@ class Database:
         cpy.write(pgcopy.tostring())  # all rows
         cpy.write(pack('!h', -1))  # file trailer
         return(cpy)
+
+    def calculatefield(self,calcname,fieldnames,calculation, datatime):
+
+        ## Grab all of the forecast datatimes
+        grps = ', '.join(map((lambda name: "min(CASE WHEN fld.name = '{name}' THEN forecastid else NULL end) as {name}".format(name=name)),fieldnames))
+        lst  = ', '.join(map((lambda name: "'{name}'".format(name=name)),fieldnames))
+
+        ## returns datatime, datatimeforecast, forecastid1, forecastid2, ...
+        q = """
+        select datatime, datatimeforecast, pressure_mb, {grps}
+        from forecasts fcst
+        inner join fields fld on fcst.fieldid = fld.fieldid
+        where fld.modelid = {modelid} and fld.name in ({lst}) and datatime = '{datatime}'
+        group by datatime, datatimeforecast, pressure_mb;
+        """.format(grps=grps, modelid=self.dbmodelid, lst=lst, datatime=datatime )
+        self.curs.execute(q)
+        rows = self.curs.fetchall()
+
+        ## create the calculated field for each forecast
+        fieldid = self.getfieldid(calcname)
+        for row in rows:
+            datatime = row[0]
+            datatimeforecast = row[1]
+            pressure_mb = row[2]
+            forecastids = row[3:]
+            if any(map(lambda x: x==None,forecastids)): # if any are None
+                raise Exception('One or more fieldnames not present in database')
+            zipped = zip(forecastids, fieldnames)
+            grps = ', '.join(map((lambda x: "min(CASE WHEN forecastid = '{id}' THEN value else NULL end) as {name}".format(id=x[0],name=x[1])),zipped))
+            lst  = ', '.join(map((lambda x: "'{id}'".format(id=x[0])),zipped))
+            forecastid = self.getforecastid(fieldid,datatime,datatimeforecast, pressure_mb)
+            q = """
+            insert into stagingdata (gridpointid, forecastid, value) (
+                select gridpointid, {forecastid}, ({calculation}) as value
+                from (
+                    select gridpointid, {grps}
+                    from data
+                    where forecastid in ({lst})
+                    group by gridpointid
+                ) as foo
+            );
+            """.format(grps=grps, lst=lst, forecastid=forecastid, calculation=calculation)
+            try:
+                self.curs.execute(q, datatime)
+            except:
+                raise Exception('Bad Calculation')
+            self.curs.execute('select applystagingdata();')
+        self.conn.commit()
+
+
+
+
 
 
 

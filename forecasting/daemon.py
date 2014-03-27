@@ -162,6 +162,16 @@ class Daemon(DaemonParent):
             args['geos'] = config['geos']
         else:
             args['geos'] = None
+        if 'pressure' in config:
+            args['pressure'] = config['pressure']
+        else:
+            args['pressure'] = None
+
+        if 'calculatedfields' in config:
+            print config
+            for field in config['calculatedfields']:
+                for key, value in field.items():
+                    m.addcalculatedfield(key,value['dependents'],value['calculation'])
 
         ntries = 0
         ntriesmax = max(int(config['modelint']/config['poll']*2/3),1)

@@ -46,6 +46,9 @@ class Model:
     # database
     database = None
 
+    # calculated fields
+    calcfields = []
+
     # misc
     fpath = os.path.dirname(os.path.abspath(__file__))
 
@@ -113,6 +116,19 @@ class Model:
                 result = datatime
         return result
 
+    def addcalculatedfield(self,fieldname,dependents,calculation):
+        """
+        Add a calculated field to the database. Each time new model data is added into the database, the calculated field will be run.
+
+        m.addcalculatedfield('windspeed',['uvelocity','vvelocity'],'sqrt(uvelocity^2+vvelocity^2)')
+        """
+
+        self.calcfields.append({fieldname:{'dependents': dependents, 'calculation': calculation}})
+
+
+
+
+
 
     def connect(self, **connargs):
         """Connect to postgis database and ensure the database has been properly setup
@@ -129,15 +145,45 @@ class Model:
 
         self.database = Database(**connargs)
 
-    def transfer(self, fields, datatime=None, geos=None):
+    def transfer(self, fields, datatime=None, geos=None, pressure=None):
         """Transfer a set of fields for a given timestamp into the connected postgis database
 
-        Usage:
+        Usage
+        -----------
         m = models('nam')
         m.connect(database="weather")
         fields = ['acpcpsfc','tmp2m'] # gfs
         datatime = datetime.strptime('Aug 02 2013 12:00PM', '%b %d %Y %I:%M%p')
         nam.transfer(datatime, fields)
+
+        Arguments
+        -----------
+        Arguments are:
+          * fields: a list of fields to be processed
+            datatime: the datatime to pull the forecast. Defaults to most recent time
+            geos: geographic bounding for the forecast. Defaults to the entire model. See below for format.
+            pressure: Pressure levels to grab, where appropriate. Defaults to every fourth level. see below for format.
+
+
+        Geos format
+        -------------
+        geos = [{ # Bounded Box
+                'n': 41.00,   # * required
+                's': 39.00,   # * required
+                'e': -99.00,  # * required
+                'w': -101.00, # * required
+                'i':2         # (optional) download every ith datapoint, defaults to 1.
+            },{ # Point with Neighbors
+                'lat': 38.00, # * required
+                'lon': -100.00, # * required
+                'k':8 # (optional) nearest neighbors defaults to 1 (ie only itself).
+            }]
+
+        Pressure format
+        ------------- 
+        pressure = {'min': 25,   # * required, minimum pressure in mb
+                    'max': 1000, # * required, max pressure in mb
+                    'i': 4}      # (optional) download every ith pressure level, defaults to 1.
 
         Eventually, there will also be a geo dictionary that can be used to specify a prefered
         lat/lon boundary (ie only grab a subset of available data), but at the moment, it's all or nothing.
@@ -150,13 +196,28 @@ class Model:
         if datatime == None:
             datatime = self.getlatesttime()
 
+
         if geos == None:
-            bounds=[[[0,self.nlat,1],[0,self.nlon,1]]]
+            geobounds=[[[0,self.nlat,1],[0,self.nlon,1]]]
         else:
             print '-----------------------------'
             print '-- parsing geos information:'
             print '-----------------------------'
-            bounds = self._parsegeos(geos)
+            geobounds = self._parsegeos(geos)
+
+        if pressure == None:
+            levbounds = [0,self.nlev,4]
+        else:
+            if not all([x in pressure for x in ['min','max']]):
+                raise Exception('Pressure requires a min and a max value')
+            ilevs = self._indexf(self.lev,lambda x: x <= pressure['max'])
+            if ilevs > 0:
+                ilevs = ilevs-1
+            ileve = self._indexf(self.lev,lambda x: x <= pressure['min'])
+            if 'i' in pressure:
+                ilevi = pressure['i']
+            else:
+                ilevi = 1
 
 
         # create the url for the datatime
@@ -176,8 +237,21 @@ class Model:
 
         # Process each field
         for field in fields:
-            for bound in bounds:
-                self._processfield(field,datatime,bound)
+            for geobound in geobounds:
+                self._processfield(field,datatime,geobound,levbounds)
+
+        # calculate any calculated fields
+        for calc in self.calcfields:
+            for f, p in calc.items():
+                try:
+                    self.database.calculatefield(f,p['dependents'],p['calculation'],datatime)
+                except:
+                    print 'Error calculating field for %s' % fieldname
+
+    def _indexf(self,l,f):
+        for i,il in enumerate(l):
+            if f(il):
+                return i
 
     def _createurl(self,datatime):
         # create appropriate url
@@ -209,18 +283,21 @@ class Model:
 
         ## Check to see if grid has correct number of entries, and cache gridids locally
         # grab the shape of the lat lon points
-        field = 'tmp2m'
+        field = 'tmpprs'
         datatime = self.getlatesttime()
         url = self._createurl(datatime)
         self.modelconn = open_url(url)
         dat = self.modelconn[field]
         shp = dat.shape
-        nlat = shp[1]
-        nlon = shp[2]
+        nlat = shp[2]
+        nlon = shp[3]
+        nlev = shp[1]
         self.nlat = nlat
         self.nlon = nlon
+        self.nlev = nlev
         self.lat = dat.lat[:]
         self.lon = dat.lon[:]
+        self.lev = dat.lev[:]
 
 
         numgridpoints = self.database.numberofgridpoints()
@@ -235,7 +312,7 @@ class Model:
 
 
 
-    def _processfield(self, field, datatime, bound):
+    def _processfield(self, field, datatime, geobound,levbound):
 
         print '------------------------'
         print '-- Processing %s' % field
@@ -257,15 +334,20 @@ class Model:
         TIMEONLY = 1
         TIMEANDLEV = 2
 
-        # set the bounds
-        ilats = bound[0][0]
-        ilate = bound[0][1]
-        ilati = bound[0][2]
-        ilons = bound[1][0]
-        ilone = bound[1][1]
-        iloni = bound[1][2]
+        # set the geobounds
+        ilats = geobound[0][0]
+        ilate = geobound[0][1]
+        ilati = geobound[0][2]
+        ilons = geobound[1][0]
+        ilone = geobound[1][1]
+        iloni = geobound[1][2]
         latrange = np.arange(ilats,ilate,ilati)
         lonrange = np.arange(ilons,ilone,iloni)
+
+        # set the pressure bounds
+        ilevs = levbound[0]
+        ileve = levbound[1]
+        ilevi = levbound[2]
 
 
 
@@ -290,7 +372,7 @@ class Model:
             print 'field has four components: time, lev, lat, lon'
 
             # grab the data container
-            dat = fieldconn[:,0:fullshape[1]:4, ilats:ilate:ilati,ilons:ilone:iloni]
+            dat = fieldconn[:,ilevs:ileve:ilevi, ilats:ilate:ilati,ilons:ilone:iloni]
 
             # grab information about the container shape
             shp = dat.shape
@@ -341,6 +423,7 @@ class Model:
 
             # Send to database
             self.database.senddata(data)
+
 
 
     def _parsegeos(self,geo):
@@ -396,4 +479,5 @@ if __name__ == '__main__':
     datatime =  nam.getlatesttime()
     geos = {'lat': 39.97316, 'lon': -105.145, 'k':8}
     fields = ['tmp2m'] # nam
+    nam.addcalculatedfield('tempdegf',['tmp2m'],'tmp2m*9.0/5+32.0')
     nam.transfer(fields, datatime,geos=geos)
