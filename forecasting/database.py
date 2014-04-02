@@ -84,12 +84,11 @@ class Database:
         fieldid = self.curs.fetchone()[0]
         return fieldid
 
-    def getforecastid(self,fieldid,datatime,datatimeforecast,ilev):
+    def getforecastid(self,fieldid,datatime,datatimeforecast,lev=None):
         # Select (or create) the forecastid
-        if ilev == None or np.isnan(ilev):
+        if lev == None or np.isnan(lev):
             self.curs.execute("select insertforecast(%d,null,'%s',date_trunc('minute',timestamp '%s' + interval '30 seconds'));" % (fieldid, datatime, datatimeforecast))
         else:
-            lev = dat.lev[ilev]
             self.curs.execute("select insertforecast(%d,%f,'%s',date_trunc('minute',timestamp '%s' + interval '30 seconds'));" % (fieldid, lev, datatime, datatimeforecast))
         forecastid = self.curs.fetchone()[0]
         return forecastid

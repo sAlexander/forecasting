@@ -39,8 +39,10 @@ class Model:
     # geo
     lat = []
     lon  = []
+    lev = []
     nlat = None
     nlon = None
+    nlev = None
     daterange = []
 
     # database
@@ -218,6 +220,7 @@ class Model:
                 ilevi = pressure['i']
             else:
                 ilevi = 1
+            levbounds = [ilevs, ileve, ilevi]
 
 
         # create the url for the datatime
@@ -400,7 +403,11 @@ class Model:
             datatimeforecast = datetime.fromordinal(int(dat.time[it])) + timedelta(hours=24*(dat.time[it]%1), days=-1)
 
             # Select (or create) the forecastid
-            forecastid = self.database.getforecastid(fieldid,datatime,datatimeforecast,ilev)
+            if np.isnan(ilev):
+                lev = None
+            else:
+                lev = self.lev[ilev]
+            forecastid = self.database.getforecastid(fieldid,datatime,datatimeforecast,lev)
 
 
             # set up the grid point holder
