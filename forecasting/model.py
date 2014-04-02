@@ -484,10 +484,21 @@ class Model:
 if __name__ == '__main__':
     #fields = ['apcpsfc','hgtsfc','shtflsfc','soill0_10cm','soill10_40cm','soill40_100cm','soill100_200cm','soilm0_200cm','sotypsfc','pressfc','lhtflsfc','tcdcclm','tmpsfc','tmp2m','tkeprs']
 
-    nam = Model('nam')
-    nam.connect(database="weather", user="salexander")
-    datatime =  nam.getlatesttime()
-    geos = {'lat': 39.97316, 'lon': -105.145, 'k':8}
-    fields = ['tmp2m'] # nam
-    nam.addcalculatedfield('tempdegf',['tmp2m'],'tmp2m*9.0/5+32.0')
-    nam.transfer(fields, datatime,geos=geos)
+    rap = Model('rap')
+    rap.connect(database="weather", user="salexander", port=5433)
+    datatime =  rap.getlatesttime()
+    geos = {'lat': 39.97316, 'lon': -105.145}
+    pressure = {'min':700,'max':1000};
+    fields = [
+            'tmpsfc',  # Surface temperature
+            'pressfc','pres80m', 
+            'hpblsfc',
+            'hgtprs',
+            'ugrdprs','ugrd10m','ugrd80m',
+            'vgrdprs','vgrd10m','vgrd80m'
+            ] # rap
+
+    rap.addcalculatedfield('wndprs',['ugrdprs','vgrdprs'],'sqrt(ugrdprs^2+vgrdprs^2)')
+    rap.addcalculatedfield('wnd10m',['ugrd10m','vgrd10m'],'sqrt(ugrd10m^2+vgrd10m^2)')
+    rap.addcalculatedfield('wnd80m',['ugrd80m','vgrd80m'],'sqrt(ugrd80m^2+vgrd80m^2)')
+    rap.transfer(fields, datatime,geos=geos,pressure=pressure)
