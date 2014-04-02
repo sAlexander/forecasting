@@ -246,6 +246,9 @@ class Model:
         # calculate any calculated fields
         for calc in self.calcfields:
             for f, p in calc.items():
+                print '------------------------'
+                print '-- Calculating %s' % f
+                print '------------------------'
                 try:
                     self.database.calculatefield(f,p['dependents'],p['calculation'],datatime)
                 except:
