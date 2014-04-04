@@ -1,0 +1,35 @@
+# This is an example configuration file for the daemon
+# 
+# You can run it by calling:
+#    python forecast/daemon.py nam.yaml
+#
+# You can check how it's going by looking at the output:
+#    tail -f nam-boulder-out.log
+#
+# and then you can kill it with:
+#    cat nam-boulder.pid | xargs kill
+#    rm nam-boulder.pid
+
+name: rap-usa
+model: rap                          # required
+database:
+    database: weather
+    user: salexander
+fields:                             # required
+    - ugrd80m
+    - vgrd80m
+    - tmp80m
+    - pres80m
+calculatedfields:
+    - wnd80m:
+        dependents:
+            - ugrd80m
+            - vgrd80m
+        calculation: 'sqrt(ugrd80m^2+vgrd80m^2)'
+poll: 600                           # required
+modelint: 3600                      # required
+pid: ./rap-usa.pid  
+stdin: /dev/null
+stdout: ./rap-usa-out.log
+stderr: ./rap-usa-err.log
+
