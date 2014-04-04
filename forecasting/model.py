@@ -8,13 +8,16 @@ import urllib2
 # third party libraries
 import numpy as np
 from pydap.client import open_url
+import pydap.lib
+pydap.lib.CACHE = "/tmp/pydap-cache/"
 
 # local libraries
 from database import Database
-# NONE
+import util
 
 class Model:
-    """Initialize a forecasting model with a given model name (nam, gfs, etc)
+    """
+    Initialize a forecasting model with a given model name (nam, gfs, etc)
 
     To use,
     m = forecasting.model(modelabbr)
@@ -60,13 +63,17 @@ class Model:
 
 
     def __init__(self, modelname):
-        """Initilize the model with a modelname and set the url for the datafeed"""
+        """
+        Initilize the model with a modelname and set the url for the datafeed
+        """
         self.modelname = modelname
         self.baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/{model}/{model}{date}/{model}_{hour}z'.format(model=modelname,date='{date}',hour='{hour}')
         self.timeurl = 'http://nomads.ncep.noaa.gov:9090/dods/{model}'.format(model=modelname)
 
     def info(self):
-        """Describe the current model. This includes things like the model name, url, number of lat/lon, etc"""
+        """
+        Describe the current model. This includes things like the model name, url, number of lat/lon, etc
+        """
 
         self._setup()
 
@@ -93,7 +100,9 @@ class Model:
 
 
     def getdaterange(self):
-        """Get the date range for the current model"""
+        """
+        Get the date range for the current model
+        """
 
         regex = re.compile("%s(\d{8})" % self.modelname)
         f = urllib2.urlopen(self.timeurl)
@@ -103,19 +112,33 @@ class Model:
         return [np.min(numdates), np.max(numdates)]
 
     def getlatesttime(self):
-        """Get the datatime for the latest time available"""
+        """
+        Get the datatime for the latest time available
+        """
+
+        print 'Getting the latest time'
 
         # refresh the daterange
         self.daterange = self.getdaterange()
         lastday = self.daterange[1]
 
+        # search for the largest hour which is true using the bisection method
         result = None
-        for hour in range(0,24):
+        range = [0,23]
+        while (range[1]-range[0]) > 0:
+            print range
+            hour = (range[1]+range[0])/2 # nb: this will round down
             datatime = datetime.strptime('%s%02d' % (lastday, hour), '%Y%m%d%H')
             url = self._createurl(datatime)
             res = self._checkurl(url)
             if res == True:
                 result = datatime
+                if range[0] == hour:
+                    range[0] = hour+1
+                else:
+                    range[0] = hour
+            else:
+                range[1] = hour
         return result
 
     def addcalculatedfield(self,fieldname,dependents,calculation):
@@ -133,7 +156,8 @@ class Model:
 
 
     def connect(self, **connargs):
-        """Connect to postgis database and ensure the database has been properly setup
+        """
+        Connect to postgis database and ensure the database has been properly setup
 
         Sample usage:
         m = forecasting.model(modelabbr)
@@ -148,7 +172,8 @@ class Model:
         self.database = Database(**connargs)
 
     def transfer(self, fields, datatime=None, geos=None, pressure=None):
-        """Transfer a set of fields for a given timestamp into the connected postgis database
+        """
+        Transfer a set of fields for a given timestamp into the connected postgis database
 
         Usage
         -----------
@@ -156,7 +181,7 @@ class Model:
         m.connect(database="weather")
         fields = ['acpcpsfc','tmp2m'] # gfs
         datatime = datetime.strptime('Aug 02 2013 12:00PM', '%b %d %Y %I:%M%p')
-        nam.transfer(datatime, fields)
+        nam.transfer(fields, datatime)
 
         Arguments
         -----------
@@ -252,9 +277,10 @@ class Model:
                 try:
                     self.database.calculatefield(f,p['dependents'],p['calculation'],datatime)
                 except:
-                    print 'Error calculating field for %s' % fieldname
+                    print 'Error calculating field for %s' % f
 
     def _indexf(self,l,f):
+        # simple little helper function to find the index of the first true evaluation
         for i,il in enumerate(l):
             if f(il):
                 return i
@@ -268,18 +294,18 @@ class Model:
     def _checkurl(self,url):
         # We have to check the das file for an error
         try:
-            f = urllib2.urlopen(url+'.das')
-            response = f.read()
+            util.request(url+'.dds')
+            return True
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
         except:
             return False
-        if response[0:5] == 'Error':
-            return False
-        else:
-            return True
 
 
     def _setup(self):
-        """Setup the grid and cache the gridpoints"""
+        """
+        Setup the grid and cache the gridpoints
+        """
 
         self.database.cachemodelid(self.modelname)
 
@@ -484,21 +510,24 @@ class Model:
 if __name__ == '__main__':
     #fields = ['apcpsfc','hgtsfc','shtflsfc','soill0_10cm','soill10_40cm','soill40_100cm','soill100_200cm','soilm0_200cm','sotypsfc','pressfc','lhtflsfc','tcdcclm','tmpsfc','tmp2m','tkeprs']
 
-    rap = Model('rap')
-    rap.connect(database="weather", user="salexander", port=5433)
+    rap = Model('nam')
+    rap.connect(database="weather", user="salexander")
     datatime =  rap.getlatesttime()
     geos = {'lat': 39.97316, 'lon': -105.145}
-    pressure = {'min':700,'max':1000};
+    pressure = {'min':600,'max':1000};
     fields = [
             'tmpsfc',  # Surface temperature
-            'pressfc','pres80m', 
+            'pressfc', 
             'hpblsfc',
-            'hgtprs',
-            'ugrdprs','ugrd10m','ugrd80m',
-            'vgrdprs','vgrd10m','vgrd80m'
+            'hgtprs', 'hgtsfc',
+            'ugrdprs','ugrd10m',
+            'vgrdprs','vgrd10m'
             ] # rap
 
     rap.addcalculatedfield('wndprs',['ugrdprs','vgrdprs'],'sqrt(ugrdprs^2+vgrdprs^2)')
     rap.addcalculatedfield('wnd10m',['ugrd10m','vgrd10m'],'sqrt(ugrd10m^2+vgrd10m^2)')
-    rap.addcalculatedfield('wnd80m',['ugrd80m','vgrd80m'],'sqrt(ugrd80m^2+vgrd80m^2)')
+    rap.addcalculatedfield('rhosfc',['pressfc','tmpsfc'],'pressfc/(tmpsfc*287.058)')
+
+    # Allow for calculations to mix pressure/surface variables
+    # rap.addcalculatedfield('agl',['hgtprs','hgtsfc'],'hgtprs-hgtsfc')
     rap.transfer(fields, datatime,geos=geos,pressure=pressure)
