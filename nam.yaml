@@ -15,14 +15,44 @@ model: nam                          # required
 database:
     database: weather
     user: salexander
-fields:                             # required
-    - tmp2m
 geos:
-    lat: 40
-    lon: -100
-    k: 4
-poll: 600                           # required
-modelint: 21600                     # required
+    lat: 39.97316
+    lon: -105.145
+    k: 1
+pressure:
+    min: 700
+    max: 1000
+fields:                             # required
+    - tmpsfc
+    - pressfc 
+    - hpblsfc
+    - hgtprs 
+    - hgtsfc
+    - ugrdprs
+    - ugrd10m
+    - vgrdprs
+    - vgrd10m
+
+calculatedfields:
+    - wnd10m:
+        dependents:
+            - ugrd10m
+            - vgrd10m
+        calculation: 'sqrt(ugrd10m^2+vgrd10m^2)'
+    - wndprs:
+        dependents:
+            - ugrdprs
+            - vgrdprs
+        calculation: 'sqrt(ugrdprs^2+vgrdprs^2)'
+    - rhosfc:
+        dependents:
+            - pressfc
+            - tmpsfc
+        calculation: 'pressfc/(tmpsfc*287.058)'
+
+
+poll: 600                           # required for daemon
+modelint: 21600                     # required for daemon
 pid: ./nam-boulder.pid  
 stdin: /dev/null
 stdout: ./nam-boulder-out.log
