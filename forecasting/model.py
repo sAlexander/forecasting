@@ -19,7 +19,7 @@ class Model:
     """
     Initialize a forecasting model with a given model name (nam, gfs, etc)
 
-    To use,
+    Usage:
     m = forecasting.model(modelabbr)
 
     Options at the moment are:
@@ -70,9 +70,30 @@ class Model:
         self.baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/{model}/{model}{date}/{model}_{hour}z'.format(model=modelname,date='{date}',hour='{hour}')
         self.timeurl = 'http://nomads.ncep.noaa.gov:9090/dods/{model}'.format(model=modelname)
 
+    def connect(self, **connargs):
+        """
+        Connect to postgis database and ensure the database has been properly setup
+
+        Sample usage:
+        m = forecasting.model('nam')
+        m.connect(database="weather",user="ubuntu",password="magic",hostname="localhost")
+
+        If you're getting a 'Error connecting to database' exception, try connecting with psycgp2:
+
+        import psycpg2 as pg
+        pg.connect(PUT_ARGUMENTS_HERE)
+        """
+
+        self.database = Database(**connargs)
+
     def info(self):
         """
         Describe the current model. This includes things like the model name, url, number of lat/lon, etc
+
+        Usage:
+        m = forecasting.model('nam')
+        m.connect(database='weather')
+        m.info()
         """
 
         self._setup()
@@ -102,6 +123,11 @@ class Model:
     def getdaterange(self):
         """
         Get the date range for the current model
+
+        Usage:
+        m = forecasting.model('nam')
+        m.connect(database='weather')
+        m.getdaterange()
         """
 
         regex = re.compile("%s(\d{8})" % self.modelname)
@@ -114,6 +140,11 @@ class Model:
     def getlatesttime(self):
         """
         Get the datatime for the latest time available
+
+        Usage:
+        m = forecasting.model('nam')
+        m.connect(database='weather')
+        m.getlatesttime()
         """
 
         print 'Getting the latest time'
@@ -141,35 +172,6 @@ class Model:
                 range[1] = hour
         return result
 
-    def addcalculatedfield(self,fieldname,dependents,calculation):
-        """
-        Add a calculated field to the database. Each time new model data is added into the database, the calculated field will be run.
-
-        m.addcalculatedfield('windspeed',['uvelocity','vvelocity'],'sqrt(uvelocity^2+vvelocity^2)')
-        """
-
-        self.calcfields.append({fieldname:{'dependents': dependents, 'calculation': calculation}})
-
-
-
-
-
-
-    def connect(self, **connargs):
-        """
-        Connect to postgis database and ensure the database has been properly setup
-
-        Sample usage:
-        m = forecasting.model(modelabbr)
-        m.connect(database="weather",user="ubuntu",password="magic",hostname="localhost")
-
-        If you're getting a 'Error connecting to database' exception, try connecting with psycgp2:
-
-        import psycpg2 as pg
-        pg.connect(PUT_ARGUMENTS_HERE)
-        """
-
-        self.database = Database(**connargs)
 
     def transfer(self, fields, datatime=None, geos=None, pressure=None):
         """
@@ -181,7 +183,7 @@ class Model:
         m.connect(database="weather")
         fields = ['acpcpsfc','tmp2m'] # gfs
         datatime = datetime.strptime('Aug 02 2013 12:00PM', '%b %d %Y %I:%M%p')
-        nam.transfer(fields, datatime)
+        nam.transfer(fields=fields, datatime=datatime)
 
         Arguments
         -----------
@@ -279,20 +281,47 @@ class Model:
                 except:
                     print 'Error calculating field for %s' % f
 
+    def addcalculatedfield(self,fieldname,dependents,calculation):
+        """
+        Add a calculated field to the database. Each time new model data is added into the database, the calculated field will be run.
+
+
+        Usage:
+        m = forecasting.model('nam')
+        m.connect(database='weather')
+
+        fieldname = 'windspeed'
+        dependents = ['uvelocity','vvelocity']
+        calculation = 'sqrt(uvelocity^2 + vvelocity^2)'
+
+        m.addcalculatedfield(fieldname, dependents, calculation)
+        """
+
+        self.calcfields.append({fieldname:{'dependents': dependents, 'calculation': calculation}})
+
     def _indexf(self,l,f):
-        # simple little helper function to find the index of the first true evaluation
+        """
+        simple little helper function to find the index of the first true evaluation
+        """
+
         for i,il in enumerate(l):
             if f(il):
                 return i
 
     def _createurl(self,datatime):
-        # create appropriate url
+        """
+        create appropriate url
+        """
+
         date = datetime.strftime(datatime, '%Y%m%d')
         hour = datetime.strftime(datatime, '%H')
         return self.baseurl.format(date=date,hour=hour)
 
     def _checkurl(self,url):
-        # We have to check the das file for an error
+        """
+        We have to check the das file for an error
+        """
+
         try:
             util.request(url+'.dds')
             return True
@@ -300,6 +329,8 @@ class Model:
             raise KeyboardInterrupt
         except:
             return False
+
+
 
 
     def _setup(self):
