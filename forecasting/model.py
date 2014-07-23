@@ -486,7 +486,7 @@ class Model:
             data['forecastid'] = np.ones(nlat*nlon)*forecastid
 
             # Remove bad data
-            data = data[data['value'] < 1e10,:]
+            data = data[data['value'] < 1e10]
 
             # Send to database
             self.database.senddata(data)
