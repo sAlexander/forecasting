@@ -155,7 +155,7 @@ class Model:
 
         # search for the largest hour which is true using the bisection method
         result = None
-        range = [0,23]
+        range = [0,24]
         while (range[1]-range[0]) > 0:
             print range
             hour = (range[1]+range[0])/2 # nb: this will round down
