@@ -246,7 +246,7 @@ class Model:
             if 'i' in pressure:
                 ilevi = pressure['i']
             else:
-                ilevi = 1
+                ilevi = 4
             levbounds = [ilevs, ileve, ilevi]
 
 
