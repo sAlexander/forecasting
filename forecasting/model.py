@@ -466,7 +466,8 @@ class Model:
             if np.isnan(ilev):
                 lev = None
             else:
-                lev = self.lev[ilev]
+                idxlev = ilevs + ilev*ilevi
+                lev = self.lev[idxlev]
             forecastid = self.database.getforecastid(fieldid,datatime,datatimeforecast,lev)
 
 
