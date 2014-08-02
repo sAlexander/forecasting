@@ -240,9 +240,7 @@ class Model:
             if not all([x in pressure for x in ['min','max']]):
                 raise Exception('Pressure requires a min and a max value')
             ilevs = self._indexf(self.lev,lambda x: x <= pressure['max'])
-            if ilevs > 0:
-                ilevs = ilevs-1
-            ileve = self._indexf(self.lev,lambda x: x <= pressure['min'])
+            ileve = self._indexf(self.lev,lambda x: x <= pressure['min']) + 1
             if 'i' in pressure:
                 ilevi = pressure['i']
             else:
