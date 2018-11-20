@@ -29,22 +29,4 @@ fields = ['tmp2m']
 nam.transfer(fields)</pre>
     </div>
   </div>
-  <div class="col-12 col-lg-6">
-    <h2>Use the API to Retrieve Forecasts</h2>
-    <a href="/api"><button type="button" class="btn btn-primary btn-small">Request an API Key</button></a>
-    <a href="/documentation/Api"><button type="button" class="btn btn-default btn-small">Read the Documentation</button></a>
-    <h4 class="code-header">Python</h4>
-    <div class="code">
-      <pre data-language="python">import urllib2
-import json
-
-url = 'http://api.getforecasting.com/KEY/40n/105.3w/temperature'
-response = urllib2.urlopen(url)
-temperature = json.loads(response.read())</pre>
-    </div>
-  </div>
-  <div class="col-12 well text-center" style="font-size: 1.5em;">
-    <p><strong>Want to see some full blown weather recipes?</strong> Checkout our <a href="/documentation/quick-start/">quick start guide</a> and <a href="/documentation">documentation</a>... they've got you covered.</p>
-  </div>
-
 </div> <!-- /container -->
